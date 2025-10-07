@@ -34,10 +34,10 @@ const CONTRACT_ABI = [
   { "inputs": [{ "internalType": "address", "name": "user", "type": "address" }], "name": "remainingRewards", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }
 ];
 
-// Global variables
+// --- Global variables ---
 let provider, signer, contract, currentAccount;
 
-// UI refs
+// --- UI references ---
 const connectBtn = document.getElementById("connectWallet");
 const walletStatus = document.getElementById("walletAddress");
 const balanceSpan = document.getElementById("balance");
@@ -49,8 +49,8 @@ const messagesUl = document.getElementById("messages");
 // --- Switch to Celo Mainnet ---
 async function switchToCelo() {
   if (!provider) return false;
-  const CELO_CHAIN_ID = "0xa4ec"; // 42220 hex
 
+  const CELO_CHAIN_ID = "0xa4ec"; // 42220 hex
   try {
     await provider.provider.request({
       method: "wallet_switchEthereumChain",
@@ -81,18 +81,24 @@ async function switchToCelo() {
 // --- Connect Wallet ---
 async function connectWallet() {
   let injected = window.celo || window.ethereum;
-  if (!injected) { alert("No wallet detected! Install MetaMask, Rabby, or Celo Extension."); return false; }
+  if (!injected) {
+    alert("No wallet detected! Install MetaMask, Rabby, or Celo Extension.");
+    return false;
+  }
 
   try {
+    // Poproś o połączenie kont
     if (injected.request) await injected.request({ method: 'eth_requestAccounts' });
     else if (injected.enable) await injected.enable();
 
     provider = new ethers.providers.Web3Provider(injected);
+
+    // Najpierw przełącz sieć
+    await switchToCelo();
+
     signer = provider.getSigner();
     currentAccount = await signer.getAddress();
     walletStatus.innerText = `Connected: ${currentAccount}`;
-
-    await switchToCelo();
 
     contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
@@ -116,14 +122,14 @@ async function updateBalance() {
   balanceSpan.innerText = ethers.utils.formatUnits(balance, 18);
 }
 
-// --- Update Remaining ---
+// --- Update Remaining Rewards ---
 async function updateRemaining() {
   if (!contract || !currentAccount) return;
   const remaining = await contract.remainingRewards(currentAccount);
   remainingSpan.innerText = remaining.toString();
 }
 
-// --- Load messages ---
+// --- Load Messages ---
 async function loadMessages() {
   if (!contract) return;
   const messages = await contract.getAllMessages();
@@ -135,9 +141,11 @@ async function loadMessages() {
   });
 }
 
-// --- Send message ---
+// --- Send Message ---
 async function sendMessage() {
-  if (!contract || !currentAccount) { if (!await connectWallet()) return; }
+  if (!contract || !currentAccount) {
+    if (!await connectWallet()) return;
+  }
   const text = messageInput.value.trim();
   if (!text) return alert("Message cannot be empty");
 
