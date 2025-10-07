@@ -34,10 +34,10 @@ const CONTRACT_ABI = [
   { "inputs": [{ "internalType": "address", "name": "user", "type": "address" }], "name": "remainingRewards", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }
 ];
 
-// --- Global variables ---
+// Global variables
 let provider, signer, contract, currentAccount;
 
-// --- UI references ---
+// UI refs
 const connectBtn = document.getElementById("connectWallet");
 const walletStatus = document.getElementById("walletAddress");
 const balanceSpan = document.getElementById("balance");
@@ -49,20 +49,27 @@ const messagesUl = document.getElementById("messages");
 // --- Switch to Celo Mainnet ---
 async function switchToCelo() {
   if (!provider) return false;
-  const CELO_CHAIN_ID = "0xa4ec"; // 42220 in hex
+  const CELO_CHAIN_ID = "0xa4ec"; // 42220 hex
+
   try {
-    await provider.send("wallet_switchEthereumChain", [{ chainId: CELO_CHAIN_ID }]);
+    await provider.provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: CELO_CHAIN_ID }]
+    });
     return true;
   } catch (err) {
     if (err.code === 4902) {
       try {
-        await provider.send("wallet_addEthereumChain", [{
-          chainId: CELO_CHAIN_ID,
-          chainName: "Celo Mainnet",
-          nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
-          rpcUrls: ["https://forno.celo.org"],
-          blockExplorerUrls: ["https://celo.blockscout.com"]
-        }]);
+        await provider.provider.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: CELO_CHAIN_ID,
+            chainName: "Celo Mainnet",
+            nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+            rpcUrls: ["https://forno.celo.org"],
+            blockExplorerUrls: ["https://celo.blockscout.com"]
+          }]
+        });
         return true;
       } catch (addErr) { console.error(addErr); return false; }
     }
@@ -73,14 +80,10 @@ async function switchToCelo() {
 
 // --- Connect Wallet ---
 async function connectWallet() {
-  let injected = null;
-
-  if (window.celo) injected = window.celo;
-  else if (window.ethereum) injected = window.ethereum;
-  else { alert("No wallet detected! Install MetaMask, Rabby, or Celo Extension."); return false; }
+  let injected = window.celo || window.ethereum;
+  if (!injected) { alert("No wallet detected! Install MetaMask, Rabby, or Celo Extension."); return false; }
 
   try {
-    // Połącz się z portfelem
     if (injected.request) await injected.request({ method: 'eth_requestAccounts' });
     else if (injected.enable) await injected.enable();
 
@@ -106,14 +109,14 @@ async function connectWallet() {
   }
 }
 
-// --- Update balance ---
+// --- Update Balance ---
 async function updateBalance() {
   if (!contract || !currentAccount) return;
   const balance = await contract.balanceOf(currentAccount);
   balanceSpan.innerText = ethers.utils.formatUnits(balance, 18);
 }
 
-// --- Update remaining rewards ---
+// --- Update Remaining ---
 async function updateRemaining() {
   if (!contract || !currentAccount) return;
   const remaining = await contract.remainingRewards(currentAccount);
@@ -134,9 +137,7 @@ async function loadMessages() {
 
 // --- Send message ---
 async function sendMessage() {
-  if (!contract || !currentAccount) {
-    if (!await connectWallet()) return;
-  }
+  if (!contract || !currentAccount) { if (!await connectWallet()) return; }
   const text = messageInput.value.trim();
   if (!text) return alert("Message cannot be empty");
 
@@ -157,10 +158,11 @@ async function sendMessage() {
 // --- Listen to events ---
 function listenEvents() {
   if (!contract) return;
-  contract.on("MessageSent", (sender, content, timestamp) => {
+  contract.on("MessageSent", (sender, content, timestamp, reward) => {
     const li = document.createElement("li");
-    li.innerText = `[${new Date(Number(timestamp)*1000).toLocaleString()}] ${sender}: ${content}`;
+    li.innerText = `[${new Date(Number(timestamp)*1000).toLocaleString()}] ${sender}: ${content} (+${reward})`;
     messagesUl.appendChild(li);
+
     if (sender.toLowerCase() === currentAccount.toLowerCase()) {
       updateBalance();
       updateRemaining();
