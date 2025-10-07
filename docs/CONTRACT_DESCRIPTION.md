@@ -120,4 +120,8 @@ HelloCeloToken is **secure, transparent, and engaging**.
 - Anti-abuse mechanisms prevent spam and bot activity.  
 - All rules are enforced on-chain, ensuring fairness and transparency.
 
+## 9. Contract Address on Celo Mainnet
+
+- HelloCeloToken (HC) deployed at: `0x12b6e1f30cb714e8129F6101a7825a910a9982F2`
+- Users can interact via `sendMessage`, check balances, and view messages.
 
