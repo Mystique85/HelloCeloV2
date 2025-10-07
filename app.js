@@ -1,10 +1,43 @@
 // CONFIG
 const CONTRACT_ADDRESS = "0x12b6e1f30cb714e8129F6101a7825a910a9982F2";
-const CONTRACT_ABI = [ /* Wklej tutaj pełne ABI Twojego kontraktu */ ];
+const CONTRACT_ABI = [
+  {
+    "inputs": [], "stateMutability": "nonpayable", "type": "constructor"
+  },
+  {
+    "anonymous": false, "inputs": [
+      { "indexed": true, "internalType": "address", "name": "owner", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "spender", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }
+    ], "name": "Approval", "type": "event"
+  },
+  {
+    "anonymous": false, "inputs": [
+      { "indexed": true, "internalType": "address", "name": "sender", "type": "address" },
+      { "indexed": false, "internalType": "string", "name": "content", "type": "string" },
+      { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "reward", "type": "uint256" }
+    ], "name": "MessageSent", "type": "event"
+  },
+  {
+    "inputs": [], "name": "getAllMessages", "outputs": [
+      { "components": [
+        { "internalType": "address", "name": "sender", "type": "address" },
+        { "internalType": "string", "name": "content", "type": "string" },
+        { "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+      ], "internalType": "struct HelloCelo.Message[]", "name": "", "type": "tuple[]" }
+    ], "stateMutability": "view", "type": "function"
+  },
+  { "inputs": [], "name": "getMessageCount", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [{ "internalType": "string", "name": "_content", "type": "string" }], "name": "sendMessage", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "internalType": "address", "name": "", "type": "address" }], "name": "balanceOf", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [{ "internalType": "address", "name": "user", "type": "address" }], "name": "remainingRewards", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }
+];
 
+// --- Global variables ---
 let provider, signer, contract, currentAccount;
 
-// UI references
+// --- UI references ---
 const connectBtn = document.getElementById("connectWallet");
 const walletStatus = document.getElementById("walletAddress");
 const balanceSpan = document.getElementById("balance");
@@ -13,19 +46,16 @@ const messageInput = document.getElementById("messageInput");
 const sendMessageBtn = document.getElementById("sendMessageBtn");
 const messagesUl = document.getElementById("messages");
 
-// --- SWITCH TO CELO MAINNET ---
+// --- Switch to Celo Mainnet ---
 async function switchToCelo() {
   if (!window.ethereum) return false;
 
   const CELO_CHAIN_ID = "0xa4ec"; // 42220 in hex
   try {
-    await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: CELO_CHAIN_ID }],
-    });
+    await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CELO_CHAIN_ID }] });
     return true;
-  } catch (switchError) {
-    if (switchError.code === 4902) {
+  } catch (err) {
+    if (err.code === 4902) {
       try {
         await window.ethereum.request({
           method: "wallet_addEthereumChain",
@@ -34,35 +64,24 @@ async function switchToCelo() {
             chainName: "Celo Mainnet",
             nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
             rpcUrls: ["https://forno.celo.org"],
-            blockExplorerUrls: ["https://celo.blockscout.com"],
-          }],
+            blockExplorerUrls: ["https://celo.blockscout.com"]
+          }]
         });
         return true;
-      } catch (addError) {
-        console.error("Cannot add Celo Mainnet:", addError);
-        return false;
-      }
-    } else {
-      console.error("Switch network error:", switchError);
-      return false;
+      } catch (addErr) { console.error(addErr); return false; }
     }
+    console.error(err);
+    return false;
   }
 }
 
-// --- CONNECT WALLET ---
+// --- Connect Wallet ---
 async function connectWallet() {
-  if (!window.ethereum && !window.celo) {
-    alert("No wallet detected! Install MetaMask, Valora or Rabby.");
-    return false;
-  }
-
+  if (!window.ethereum && !window.celo) { alert("No wallet detected!"); return false; }
   const injected = window.ethereum || window.celo;
 
   try {
-    // Request accounts
     await (injected.request ? injected.request({ method: 'eth_requestAccounts' }) : injected.enable());
-
-    // Switch to Celo
     await switchToCelo();
 
     provider = new ethers.providers.Web3Provider(injected);
@@ -78,83 +97,62 @@ async function connectWallet() {
     listenEvents();
 
     return true;
-  } catch (err) {
-    console.error("Wallet connect failed:", err);
-    walletStatus.innerText = "Connection failed";
-    return false;
-  }
+  } catch (err) { console.error(err); walletStatus.innerText = "Connection failed"; return false; }
 }
 
-// --- UPDATE BALANCE AND REMAINING REWARDS ---
+// --- Update balance ---
 async function updateBalance() {
-  if (!contract || !signer) return;
+  if (!contract || !currentAccount) return;
   const balance = await contract.balanceOf(currentAccount);
   balanceSpan.innerText = ethers.formatUnits(balance, 18);
 }
 
+// --- Update remaining ---
 async function updateRemaining() {
-  if (!contract || !signer) return;
+  if (!contract || !currentAccount) return;
   const remaining = await contract.remainingRewards(currentAccount);
   remainingSpan.innerText = remaining.toString();
 }
 
-// --- LOAD MESSAGES ---
+// --- Load messages ---
 async function loadMessages() {
   if (!contract) return;
-  try {
-    const messages = await contract.getAllMessages();
-    messagesUl.innerHTML = "";
-    messages.forEach(m => {
-      const li = document.createElement("li");
-      const time = new Date(Number(m.timestamp) * 1000).toLocaleString();
-      li.innerText = `[${time}] ${m.sender}: ${m.content}`;
-      messagesUl.appendChild(li);
-    });
-  } catch (err) {
-    console.error("Error loading messages:", err);
-  }
+  const messages = await contract.getAllMessages();
+  messagesUl.innerHTML = "";
+  messages.forEach(m => {
+    const li = document.createElement("li");
+    li.innerText = `[${new Date(Number(m.timestamp)*1000).toLocaleString()}] ${m.sender}: ${m.content}`;
+    messagesUl.appendChild(li);
+  });
 }
 
-// --- SEND MESSAGE ---
+// --- Send message ---
 async function sendMessage() {
-  if (!contract || !currentAccount) {
-    const connected = await connectWallet();
-    if (!connected) return;
-  }
-
+  if (!contract || !currentAccount) { if (!await connectWallet()) return; }
   const text = messageInput.value.trim();
   if (!text) return alert("Message cannot be empty");
-
   try {
     const tx = await contract.sendMessage(text);
     await tx.wait();
-
     messageInput.value = "";
     await updateBalance();
     await updateRemaining();
     await loadMessages();
     alert("Message sent!");
-  } catch (err) {
-    console.error(err);
-    alert("Error sending message. Check console.");
-  }
+  } catch (err) { console.error(err); alert("Error sending message"); }
 }
 
-// --- LISTEN TO EVENTS ---
+// --- Listen events ---
 function listenEvents() {
   if (!contract) return;
   contract.on("MessageSent", (sender, content, timestamp) => {
     const li = document.createElement("li");
-    const time = new Date(Number(timestamp) * 1000).toLocaleString();
-    li.innerText = `[${time}] ${sender}: ${content}`;
+    li.innerText = `[${new Date(Number(timestamp)*1000).toLocaleString()}] ${sender}: ${content}`;
     messagesUl.appendChild(li);
-    if (sender.toLowerCase() === currentAccount.toLowerCase()) {
-      updateBalance();
-      updateRemaining();
-    }
+    if (sender.toLowerCase() === currentAccount.toLowerCase()) { updateBalance(); updateRemaining(); }
   });
 }
 
-// --- EVENT LISTENERS ---
+// --- Event listeners ---
 connectBtn.addEventListener("click", connectWallet);
 sendMessageBtn.addEventListener("click", sendMessage);
