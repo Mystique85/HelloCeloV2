@@ -10,25 +10,32 @@
   <div class="container">
     <h1>HelloCelo DApp</h1>
 
+    <!-- WALLET SECTION -->
     <div id="wallet-section">
       <button id="connectWallet">Connect Wallet</button>
       <p id="walletAddress"></p>
       <p>HC Balance: <span id="balance">0</span></p>
       <p>Remaining Daily Rewards: <span id="remaining">0</span></p>
+      <p id="status"></p>
     </div>
 
+    <!-- MESSAGE SECTION -->
     <div id="message-section">
       <textarea id="messageInput" placeholder="Type your message..."></textarea>
       <button id="sendMessageBtn">Send Message</button>
     </div>
 
+    <!-- MESSAGES LIST -->
     <div id="messages-list">
-      <h2>Messages</h2>
-      <ul id="messages"></ul>
+      <h2>Messages (<span id="msgCount">0</span>)</h2>
+      <div id="messages"></div>
     </div>
   </div>
 
+  <!-- Ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.min.js"></script>
+
+  <!-- Your JS -->
   <script src="app.js"></script>
 </body>
 </html>
