@@ -48,25 +48,21 @@ const messagesUl = document.getElementById("messages");
 
 // --- Switch to Celo Mainnet ---
 async function switchToCelo() {
-  if (!window.ethereum) return false;
-
+  if (!provider) return false;
   const CELO_CHAIN_ID = "0xa4ec"; // 42220 in hex
   try {
-    await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CELO_CHAIN_ID }] });
+    await provider.send("wallet_switchEthereumChain", [{ chainId: CELO_CHAIN_ID }]);
     return true;
   } catch (err) {
     if (err.code === 4902) {
       try {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [{
-            chainId: CELO_CHAIN_ID,
-            chainName: "Celo Mainnet",
-            nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
-            rpcUrls: ["https://forno.celo.org"],
-            blockExplorerUrls: ["https://celo.blockscout.com"]
-          }]
-        });
+        await provider.send("wallet_addEthereumChain", [{
+          chainId: CELO_CHAIN_ID,
+          chainName: "Celo Mainnet",
+          nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+          rpcUrls: ["https://forno.celo.org"],
+          blockExplorerUrls: ["https://celo.blockscout.com"]
+        }]);
         return true;
       } catch (addErr) { console.error(addErr); return false; }
     }
@@ -77,17 +73,23 @@ async function switchToCelo() {
 
 // --- Connect Wallet ---
 async function connectWallet() {
-  if (!window.ethereum && !window.celo) { alert("No wallet detected!"); return false; }
-  const injected = window.ethereum || window.celo;
+  let injected = null;
+
+  if (window.celo) injected = window.celo;
+  else if (window.ethereum) injected = window.ethereum;
+  else { alert("No wallet detected! Install MetaMask, Rabby, or Celo Extension."); return false; }
 
   try {
-    await (injected.request ? injected.request({ method: 'eth_requestAccounts' }) : injected.enable());
-    await switchToCelo();
+    // Połącz się z portfelem
+    if (injected.request) await injected.request({ method: 'eth_requestAccounts' });
+    else if (injected.enable) await injected.enable();
 
     provider = new ethers.providers.Web3Provider(injected);
     signer = provider.getSigner();
     currentAccount = await signer.getAddress();
     walletStatus.innerText = `Connected: ${currentAccount}`;
+
+    await switchToCelo();
 
     contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
@@ -97,17 +99,21 @@ async function connectWallet() {
     listenEvents();
 
     return true;
-  } catch (err) { console.error(err); walletStatus.innerText = "Connection failed"; return false; }
+  } catch (err) {
+    console.error("Wallet connect failed:", err);
+    walletStatus.innerText = "Connection failed";
+    return false;
+  }
 }
 
 // --- Update balance ---
 async function updateBalance() {
   if (!contract || !currentAccount) return;
   const balance = await contract.balanceOf(currentAccount);
-  balanceSpan.innerText = ethers.utils.formatUnits(balance, 18); // ⚡ Zmienione na ethers.utils.formatUnits
+  balanceSpan.innerText = ethers.utils.formatUnits(balance, 18);
 }
 
-// --- Update remaining ---
+// --- Update remaining rewards ---
 async function updateRemaining() {
   if (!contract || !currentAccount) return;
   const remaining = await contract.remainingRewards(currentAccount);
@@ -128,9 +134,12 @@ async function loadMessages() {
 
 // --- Send message ---
 async function sendMessage() {
-  if (!contract || !currentAccount) { if (!await connectWallet()) return; }
+  if (!contract || !currentAccount) {
+    if (!await connectWallet()) return;
+  }
   const text = messageInput.value.trim();
   if (!text) return alert("Message cannot be empty");
+
   try {
     const tx = await contract.sendMessage(text);
     await tx.wait();
@@ -139,17 +148,23 @@ async function sendMessage() {
     await updateRemaining();
     await loadMessages();
     alert("Message sent!");
-  } catch (err) { console.error(err); alert("Error sending message"); }
+  } catch (err) {
+    console.error(err);
+    alert("Error sending message");
+  }
 }
 
-// --- Listen events ---
+// --- Listen to events ---
 function listenEvents() {
   if (!contract) return;
   contract.on("MessageSent", (sender, content, timestamp) => {
     const li = document.createElement("li");
     li.innerText = `[${new Date(Number(timestamp)*1000).toLocaleString()}] ${sender}: ${content}`;
     messagesUl.appendChild(li);
-    if (sender.toLowerCase() === currentAccount.toLowerCase()) { updateBalance(); updateRemaining(); }
+    if (sender.toLowerCase() === currentAccount.toLowerCase()) {
+      updateBalance();
+      updateRemaining();
+    }
   });
 }
 
