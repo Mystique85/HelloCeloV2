@@ -104,7 +104,7 @@ async function connectWallet() {
 async function updateBalance() {
   if (!contract || !currentAccount) return;
   const balance = await contract.balanceOf(currentAccount);
-  balanceSpan.innerText = ethers.formatUnits(balance, 18);
+  balanceSpan.innerText = ethers.utils.formatUnits(balance, 18); // ⚡ Zmienione na ethers.utils.formatUnits
 }
 
 // --- Update remaining ---
