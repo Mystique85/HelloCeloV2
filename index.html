@@ -12,7 +12,7 @@
 
     <div id="wallet-section">
       <button id="connectWallet">Connect Wallet</button>
-      <p id="walletAddress">Not connected</p>
+      <p id="walletAddress"></p>
       <p>HC Balance: <span id="balance">0</span></p>
       <p>Remaining Daily Rewards: <span id="remaining">0</span></p>
     </div>
@@ -28,10 +28,8 @@
     </div>
   </div>
 
-  <!-- Ładujemy ethers 5.x w wersji UMD -->
+  <!-- Używamy ethers 5.x UMD -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-
-  <!-- Twój plik app.js -->
   <script src="app.js"></script>
 </body>
 </html>
