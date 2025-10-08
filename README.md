@@ -71,6 +71,11 @@ This project is released under the **MIT License**.
 
 ## 📖 Useful Links
 
-- **DApp:** [https://mystique85.github.io/HelloCelo.Project/](https://mystique85.github.io/HelloCelo.Project/)  
+- **DApp:** [https://mystique85.github.io/HelloCeloV2/](https://mystique85.github.io/HelloCeloV2/)  
 - [Celo Docs](https://docs.celo.org/)  
 - [Ethers.js Docs](https://docs.ethers.org/v5/)  
+
+
+## 🤝 Contributing
+We welcome feedback and contributions!  
+Please check out our [Contributing Guide](./CONTRIBUTING.md) for more details.
