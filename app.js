@@ -133,13 +133,10 @@ async function connectWallet() {
 	}
 
 	try {
-		// Poproś o połączenie kont
 		if (injected.request) await injected.request({ method: 'eth_requestAccounts' });
 		else if (injected.enable) await injected.enable();
 
 		provider = new ethers.providers.Web3Provider(injected);
-
-		// Najpierw przełącz sieć
 		await switchToCelo();
 
 		signer = provider.getSigner();
@@ -175,15 +172,19 @@ async function updateRemaining() {
 	remainingSpan.innerText = remaining.toString();
 }
 
-// --- Load Messages ---
+// --- Load Messages (newest first) ---
 async function loadMessages() {
 	if (!contract) return;
 	const messages = await contract.getAllMessages();
 	messagesUl.innerHTML = '';
-	messages.forEach(m => {
+
+	// Odwróć tablicę, aby najnowsze były pierwsze
+	const reversed = messages.slice().reverse();
+
+	reversed.forEach(m => {
 		const li = document.createElement('li');
 		li.innerText = `[${new Date(Number(m.timestamp) * 1000).toLocaleString()}] ${m.sender}: ${m.content}`;
-		messagesUl.appendChild(li);
+		messagesUl.appendChild(li); // dodaj na dół listy, bo tablica już jest odwrócona
 	});
 }
 
@@ -204,18 +205,21 @@ async function sendMessage() {
 		await loadMessages();
 	} catch (err) {
 		console.error(err);
-		alert('Back tommorow :)');
+		alert('Back tomorrow :)');
 	}
 }
 
-// --- Listen to events ---
+// --- Listen to events (add new on top) ---
 function listenEvents() {
 	if (!contract) return;
 	contract.on('MessageSent', (sender, content, timestamp, reward) => {
 		const li = document.createElement('li');
 		li.innerText = `[${new Date(Number(timestamp) * 1000).toLocaleString()}] ${sender}: ${content} (+${reward})`;
-		messagesUl.appendChild(li);
 
+		// Dodaj nową wiadomość na górę listy
+		messagesUl.insertBefore(li, messagesUl.firstChild);
+
+		// Aktualizuj saldo, jeśli to wiadomość od aktualnego użytkownika
 		if (sender.toLowerCase() === currentAccount.toLowerCase()) {
 			updateBalance();
 			updateRemaining();
