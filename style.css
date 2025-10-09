@@ -9,48 +9,49 @@
 @keyframes fadeIn {
 	from {
 		opacity: 0;
-		transform: scale(0) rotate(0deg);
+		transform: scale(0.95);
 	}
 	to {
 		opacity: 1;
-		transform: scale(1) rotate(360deg);
+		transform: scale(1);
 	}
 }
 
 html,
 body {
 	height: 100%;
+	width: 100%;
 	background: radial-gradient(circle at top left, #0e1320, #000);
 	color: #e2e8f0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 2rem;
+	padding: 0;
+	margin: 0;
+	overflow: auto;
 }
 
 /* ========== GŁÓWNY KONTENER ========== */
 .container {
 	width: 100%;
 	max-width: 520px;
-	background: rgba(22, 27, 40, 0.85);
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: rgba(22, 27, 40, 0.9);
+	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 20px;
 	padding: 2rem 2.5rem;
-	box-shadow: 0 0 25px rgba(0, 255, 200, 0.15);
+	box-shadow:
+		0 0 25px rgba(0, 255, 200, 0.15),
+		0 0 60px rgba(0, 255, 200, 0.08),
+		inset 0 0 10px rgba(0, 255, 200, 0.05);
 	backdrop-filter: blur(10px);
-	max-height: 90vh; /* ograniczenie wysokości kontenera */
-	display: flex;
-	flex-direction: column;
-	opacity: 0;
-	animation: fadeIn 1.8s ease forwards;
-}
 
-/* Flex dla sekcji wewnątrz kontenera */
-.container > main {
 	display: flex;
 	flex-direction: column;
-	flex: 1; /* wypełnia pozostałą przestrzeń */
-	overflow: hidden; /* zapobiega wychodzeniu zawartości poza kontener */
+	align-items: center;
+	justify-content: flex-start;
+
+	opacity: 0;
+	animation: fadeIn 1.2s ease forwards;
 }
 
 /* ========== NAGŁÓWEK ========== */
@@ -74,6 +75,7 @@ header img {
 	width: 70px;
 	height: 70px;
 	margin-bottom: 20px;
+	filter: drop-shadow(0 0 12px rgba(0, 255, 200, 0.25));
 }
 
 /* ========== WALLET SECTION ========== */
@@ -82,7 +84,7 @@ header img {
 	flex-direction: column;
 	gap: 0.6rem;
 	margin-bottom: 1.5rem;
-	flex-shrink: 0; /* nie kurczy się */
+	flex-shrink: 0;
 }
 #wallet-section p {
 	font-size: 0.95rem;
@@ -128,7 +130,7 @@ button:active {
 #messageInput {
 	width: 100%;
 	min-height: 100px;
-	max-height: 120px; /* ograniczenie wysokości textarea */
+	max-height: 120px;
 	background: rgba(255, 255, 255, 0.05);
 	border: 1px solid rgba(255, 255, 255, 0.15);
 	border-radius: 12px;
@@ -145,13 +147,15 @@ button:active {
 
 /* ========== MESSAGES LIST ========== */
 #messages-list {
-	flex: 1; /* wypełnia resztę miejsca w kontenerze */
-	overflow-y: auto; /* scroll zamiast wychodzenia poza kontener */
+	flex: 1;
+	overflow-y: auto;
 	background: rgba(255, 255, 255, 0.03);
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	border-radius: 14px;
 	padding: 1.2rem;
 	transition: background 0.3s ease;
+	min-height: 150px;
+	max-height: 300px;
 }
 #messages-list:hover {
 	background: rgba(255, 255, 255, 0.05);
@@ -182,7 +186,7 @@ button:active {
 /* ========== STOPKA ========== */
 footer {
 	text-align: center;
-	margin-top: 1rem;
+	margin-top: 1.5rem;
 	font-size: 0.8rem;
 	color: rgba(255, 255, 255, 0.5);
 	flex-shrink: 0;
@@ -200,26 +204,13 @@ footer {
 	border-radius: 10px;
 }
 
-/* ========== RESPONSYWNOŚĆ ========== */
-@media (max-width: 480px) {
-	.container {
-		padding: 1.5rem;
-	}
-	header h1 {
-		font-size: 1.6rem;
-	}
-	button {
-		font-size: 0.9rem;
-	}
-}
-
-/* ========== SIDEBAR ========== */
+/* ========== SIDEBAR / LINKI W STOPCE ========== */
 .nav {
 	display: flex;
 	background: rgba(15, 20, 30, 0.9);
 	border-right: 1px solid rgba(255, 255, 255, 0.1);
 	border-radius: 16px;
-	padding: 2rem 1.5rem;
+	padding: 1rem 1.5rem;
 	width: 100%;
 	justify-content: space-between;
 	box-shadow: 0 0 25px rgba(0, 255, 200, 0.1);
@@ -245,18 +236,22 @@ footer {
 	transform: translateX(4px);
 }
 
-/* Układ mobilny */
-@media (max-width: 768px) {
-	.nav {
-		width: 100%;
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		padding: 1rem;
+/* ========== RESPONSYWNOŚĆ ========== */
+@media (max-width: 480px) {
+	.container {
+		padding: 1.5rem;
 	}
-	.nav ul {
-		flex-direction: row;
-		gap: 1rem;
+	header h1 {
+		font-size: 1.6rem;
+	}
+	button {
+		font-size: 0.9rem;
+	}
+}
+
+@media (max-height: 750px) {
+	body {
+		align-items: flex-start;
+		padding-top: 2rem;
 	}
 }
