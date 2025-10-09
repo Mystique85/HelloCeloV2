@@ -2,34 +2,60 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HelloCelo DApp</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="description" content="HelloCelo — simple DApp demo" />
+  <!-- Font (opcjonalnie, poprawia typografię) -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
   <div class="container">
-    <h1>HelloCelo DApp</h1>
+    <header role="banner" aria-label="HelloCelo header">
+      <img src="logohellocelo.png" alt="HelloCelo logo" />
+      <h1>HelloCelo DApp</h1>
+    </header>
 
-    <div id="wallet-section">
-      <button id="connectWallet"><img src="logohellocelo.png" alt="ss">Connect Wallet</button>
-      <p id="walletAddress"></p>
-      <p>HC Balance: <span id="balance">0</span></p>
-      <p>Remaining Daily Rewards: <span id="remaining">0</span></p>
-    </div>
+    <main>
+      <section id="wallet-section" aria-label="Wallet controls and information">
+        <button id="connectWallet">
+          <img src="logohellocelo.png" alt="HelloCelo logo" />Connect Wallet
+        </button>
+        <p id="walletAddress" aria-live="polite" aria-atomic="true"></p>
+        <p>HC Balance: <span id="balance" aria-live="polite">0</span></p>
+        <p>Remaining Daily Rewards: <span id="remaining" aria-live="polite">0</span></p>
+      </section>
 
-    <div id="message-section">
-      <textarea id="messageInput" placeholder="Type your message..."></textarea>
-      <button id="sendMessageBtn"> <img src="logohellocelo.png" alt="ss">Send Message</button>
-      <p class="logo"></p>
+      <section id="message-section" aria-label="Message composer">
+        <textarea id="messageInput" aria-label="Type your message" placeholder="Type your message..."></textarea>
+        <button id="sendMessageBtn" type="button">
+          <img src="logohellocelo.png" alt="HelloCelo logo" />Send Message
+        </button>
+        <p class="logo" aria-hidden="true"></p>
+      </section>
 
-    </div>
+      <section id="messages-list" aria-labelledby="messages-heading">
+        <h2 id="messages-heading">Messages</h2>
+        <ul id="messages" role="list" aria-live="polite" aria-relevant="additions"></ul>
+      </section>
+    </main>
 
-    <div id="messages-list">
-      <h2>Messages</h2>
-      <ul id="messages"></ul>
-    </div>
+    <footer role="contentinfo" aria-label="Footer">
+      <small>Built with ❤️ on Celo</small>
+      <nav class="nav">
+        <ul>
+
+          <li><a href="https://celo.org" target="_blank">🌍 Celo.org</a></li>
+          <li><a href="https://github.com/mystique85/HelloCeloV2" target="_blank">💻 GitHub</a></li>
+          <li><a href="https://github.com/Mystique85/HelloCeloV2/blob/main/README.md">📘 Docs</a></li>
+          <li><a href="https://github.com/Mystique85">✉️ Contact</a></li>
+
+        </ul>
+      </nav>
+    </footer>
   </div>
 
   <!-- Ethers 5.x UMD -->
