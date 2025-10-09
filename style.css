@@ -38,16 +38,22 @@ body {
 	padding: 2rem 2.5rem;
 	box-shadow: 0 0 25px rgba(0, 255, 200, 0.15);
 	backdrop-filter: blur(10px);
-	max-height: 90vh;
+	max-height: 90vh; /* ograniczenie wysokości kontenera */
 	display: flex;
 	flex-direction: column;
-	justify-content: space-between;
 	opacity: 0;
 	animation: fadeIn 1.8s ease forwards;
 }
 
-/* ========== NAGŁÓWEK ========== */
+/* Flex dla sekcji wewnątrz kontenera */
+.container > main {
+	display: flex;
+	flex-direction: column;
+	flex: 1; /* wypełnia pozostałą przestrzeń */
+	overflow: hidden; /* zapobiega wychodzeniu zawartości poza kontener */
+}
 
+/* ========== NAGŁÓWEK ========== */
 header {
 	display: flex;
 	text-align: center;
@@ -64,20 +70,20 @@ header h1 {
 	margin-bottom: 1.8rem;
 	letter-spacing: 1px;
 }
-
 header img {
 	width: 70px;
 	height: 70px;
 	margin-bottom: 20px;
 }
+
 /* ========== WALLET SECTION ========== */
 #wallet-section {
 	display: flex;
 	flex-direction: column;
 	gap: 0.6rem;
 	margin-bottom: 1.5rem;
+	flex-shrink: 0; /* nie kurczy się */
 }
-
 #wallet-section p {
 	font-size: 0.95rem;
 	opacity: 0.9;
@@ -99,17 +105,14 @@ button {
 	font-size: 1rem;
 	transition: all 0.25s ease;
 }
-
 button img {
 	width: 22px;
 	height: 22px;
 }
-
 button:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 4px 15px rgba(0, 255, 200, 0.4);
 }
-
 button:active {
 	transform: scale(0.98);
 }
@@ -119,12 +122,13 @@ button:active {
 	display: flex;
 	flex-direction: column;
 	gap: 0.8rem;
-	margin-bottom: 2rem;
+	margin-bottom: 1rem;
+	flex-shrink: 0;
 }
-
 #messageInput {
 	width: 100%;
 	min-height: 100px;
+	max-height: 120px; /* ograniczenie wysokości textarea */
 	background: rgba(255, 255, 255, 0.05);
 	border: 1px solid rgba(255, 255, 255, 0.15);
 	border-radius: 12px;
@@ -133,7 +137,6 @@ button:active {
 	resize: none;
 	transition: all 0.25s ease;
 }
-
 #messageInput:focus {
 	border-color: #00ffd0;
 	box-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
@@ -142,31 +145,27 @@ button:active {
 
 /* ========== MESSAGES LIST ========== */
 #messages-list {
+	flex: 1; /* wypełnia resztę miejsca w kontenerze */
+	overflow-y: auto; /* scroll zamiast wychodzenia poza kontener */
 	background: rgba(255, 255, 255, 0.03);
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	border-radius: 14px;
 	padding: 1.2rem;
 	transition: background 0.3s ease;
 }
-
 #messages-list:hover {
 	background: rgba(255, 255, 255, 0.05);
 }
-
 #messages-list h2 {
 	font-size: 1.2rem;
 	color: #00ffc6;
 	margin-bottom: 0.8rem;
 	text-shadow: 0 0 8px rgba(0, 255, 200, 0.3);
 }
-
 #messages {
 	list-style: none;
-	max-height: 200px;
-	overflow-y: auto;
 	padding-right: 0.5rem;
 }
-
 #messages li {
 	background: rgba(0, 255, 200, 0.07);
 	border-left: 3px solid #00ffd0;
@@ -176,7 +175,6 @@ button:active {
 	font-size: 0.95rem;
 	transition: background 0.3s ease;
 }
-
 #messages li:hover {
 	background: rgba(0, 255, 200, 0.12);
 }
@@ -184,12 +182,13 @@ button:active {
 /* ========== STOPKA ========== */
 footer {
 	text-align: center;
-	margin-top: 2rem;
+	margin-top: 1rem;
 	font-size: 0.8rem;
 	color: rgba(255, 255, 255, 0.5);
+	flex-shrink: 0;
 }
 
-/* ========== SCROLLBAR (estetyczny) ========== */
+/* ========== SCROLLBAR ========== */
 #messages::-webkit-scrollbar {
 	width: 6px;
 }
@@ -206,18 +205,15 @@ footer {
 	.container {
 		padding: 1.5rem;
 	}
-
 	header h1 {
 		font-size: 1.6rem;
 	}
-
 	button {
 		font-size: 0.9rem;
 	}
 }
 
 /* ========== SIDEBAR ========== */
-
 .nav {
 	display: flex;
 	background: rgba(15, 20, 30, 0.9);
@@ -229,14 +225,12 @@ footer {
 	box-shadow: 0 0 25px rgba(0, 255, 200, 0.1);
 	backdrop-filter: blur(8px);
 }
-
 .nav ul {
 	list-style: none;
 	display: flex;
 	gap: 0.8rem;
 	margin: 0 auto;
 }
-
 .nav a {
 	text-decoration: none;
 	color: #e0e6f0;
@@ -246,7 +240,6 @@ footer {
 	align-items: center;
 	gap: 0.4rem;
 }
-
 .nav a:hover {
 	color: #00ffd0;
 	transform: translateX(4px);
@@ -262,7 +255,6 @@ footer {
 		justify-content: space-between;
 		padding: 1rem;
 	}
-
 	.nav ul {
 		flex-direction: row;
 		gap: 1rem;
