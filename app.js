@@ -77,6 +77,7 @@ const CONTRACT_ABI = [
 
 // --- Global variables ---
 let provider, signer, contract, currentAccount;
+let walletConnected = false;
 
 // --- UI references ---
 const connectBtn = document.getElementById('connectWallet');
@@ -87,6 +88,25 @@ const messageInput = document.getElementById('messageInput');
 const sendMessageBtn = document.getElementById('sendMessageBtn');
 const messagesUl = document.getElementById('messages');
 
+function updateConnectButton(connected) {
+	if (connected) {
+		connectBtn.innerHTML = `<img src="logohellocelo.png" alt="HelloCelo logo" />Disconnect Wallet`;
+	} else {
+		connectBtn.innerHTML = `<img src="logohellocelo.png" alt="HelloCelo logo" />Connect Wallet`;
+	}
+}
+function disconnectWallet() {
+	walletConnected = false;
+	currentAccount = null;
+	walletStatus.innerText = '';
+	balanceSpan.innerText = '0';
+	remainingSpan.innerText = '0';
+	updateConnectButton(false);
+
+	provider = null;
+	signer = null;
+	contract = null;
+}
 // --- Switch to Celo Mainnet ---
 async function switchToCelo() {
 	if (!provider) return false;
@@ -228,5 +248,15 @@ function listenEvents() {
 }
 
 // --- Event listeners ---
-connectBtn.addEventListener('click', connectWallet);
+connectBtn.addEventListener('click', async () => {
+	if (!walletConnected) {
+		const success = await connectWallet(); // Twoja async funkcja
+		if (success) {
+			walletConnected = true;
+			updateConnectButton(true);
+		}
+	} else {
+		disconnectWallet();
+	}
+});
 sendMessageBtn.addEventListener('click', sendMessage);
