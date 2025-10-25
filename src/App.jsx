@@ -111,7 +111,7 @@ const AVAILABLE_AVATARS = [
 ];
 
 // Twórca aplikacji (ZMIEŃ NA SWÓJ ADRES)
-const CREATOR_ADDRESS = "0xTwojAdresTutaj";
+const CREATOR_ADDRESS = "0x443baEF78686Fc6b9e5e6DaEA24fe26a170c5ac8";
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
