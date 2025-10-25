@@ -1,138 +1,17 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HelloCelo DApp</title>
-  <meta name="description" content="HelloCelo — simple DApp demo" />
-  <!-- Font (opcjonalnie, poprawia typografię) -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
-</head>
-
-<body>
-  <div class="container">
-    <header role="banner" aria-label="HelloCelo header">
-      <img src="logohellocelo.png" alt="HelloCelo logo" />
-      <h1>HelloCelo DApp</h1>
-    </header>
-
-    <main>
-      <section id="wallet-section" aria-label="Wallet controls and information">
-        <button id="connectWallet">
-          <img src="logohellocelo.png" alt="HelloCelo logo" />Connect Wallet
-        </button>
-        <p id="walletAddress" aria-live="polite" aria-atomic="true"></p>
-        <p>HC Balance: <span id="balance" aria-live="polite">0</span></p>
-        <p>Remaining Daily Rewards: <span id="remaining" aria-live="polite">0</span></p>
-      </section>
-
-      <section id="message-section" aria-label="Message composer">
-        <textarea id="messageInput" aria-label="Type your message" placeholder="Type your message..."></textarea>
-        <button id="sendMessageBtn" type="button">
-          <img src="logohellocelo.png" alt="HelloCelo logo" />Send Message
-        </button>
-        <p class="logo" aria-hidden="true"></p>
-      </section>
-
-      <section id="messages-list" aria-labelledby="messages-heading">
-        <h2 id="messages-heading">Messages</h2>
-        <ul id="messages" role="list" aria-live="polite" aria-relevant="additions"></ul>
-      </section>
-    </main>
-
-    <footer role="contentinfo" aria-label="Footer">
-      <small>Built with ❤️ on Celo</small>
-      <nav class="nav">
-        <ul>
-          <li><a href="https://celo.org" target="_blank">🌍 Celo.org</a></li>
-          <li><a href="https://github.com/mystique85/HelloCeloV2" target="_blank">💻 GitHub</a></li>
-          <li><a href="https://github.com/Mystique85/HelloCeloV2/blob/main/README.md">📘 Docs</a></li>
-          <li><a href="https://github.com/Mystique85">✉️ Contact</a></li>
-        </ul>
-      </nav>
-    </footer>
-  </div>
-
-  <!-- Firebase -->
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { 
-      getFirestore, 
-      doc, 
-      setDoc, 
-      getDoc, 
-      collection, 
-      addDoc, 
-      query, 
-      orderBy, 
-      onSnapshot, 
-      serverTimestamp 
-    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-
-    // Environment variables from .env
-    const firebaseConfig = {
-      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-      appId: import.meta.env.VITE_FIREBASE_APP_ID
-    };
-
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // Firebase functions - dostępne globalnie
-    window.userService = {
-      async registerUser(walletAddress, nickname) {
-        const userRef = doc(db, 'users', walletAddress.toLowerCase());
-        await setDoc(userRef, {
-          nickname,
-          walletAddress: walletAddress.toLowerCase(),
-          createdAt: serverTimestamp(),
-          isRegistered: true
-        });
-        return true;
-      },
-
-      async getUser(walletAddress) {
-        const userRef = doc(db, 'users', walletAddress.toLowerCase());
-        const userSnap = await getDoc(userRef);
-        return userSnap.exists() ? userSnap.data() : null;
-      },
-
-      async sendMessage(messageData) {
-        const messagesRef = collection(db, 'messages');
-        return await addDoc(messagesRef, {
-          ...messageData,
-          timestamp: serverTimestamp()
-        });
-      },
-
-      subscribeToMessages(callback) {
-        const messagesRef = collection(db, 'messages');
-        const q = query(messagesRef, orderBy('timestamp', 'desc'));
-        
-        return onSnapshot(q, (snapshot) => {
-          const messages = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          callback(messages);
-        });
-      }
-    };
-
-    console.log("Firebase loaded successfully!");
-  </script>
-
-  <!-- Ethers 5.x UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="app.js"></script>
-</body>
-
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/hublogo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HUB Portal - Decentralized Chat</title>
+    <meta name="description" content="HUB Portal - Decentralized Social Chat on Celo" />
+    <!-- Font -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
