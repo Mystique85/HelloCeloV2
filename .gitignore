@@ -1,0 +1,31 @@
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Firebase
+firebase-debug.log
+.firebase/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/

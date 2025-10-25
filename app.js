@@ -1,5 +1,5 @@
-// CONFIG
-const CONTRACT_ADDRESS = '0x12b6e1f30cb714e8129F6101a7825a910a9982F2';
+// CONFIG - using environment variables
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 const CONTRACT_ABI = [
 	{
 		inputs: [],
@@ -76,6 +76,8 @@ const CONTRACT_ABI = [
 ];
 
 // --- Global variables ---
+let currentUser = null;
+let unsubscribeMessages = null;
 let provider, signer, contract, currentAccount;
 let walletConnected = false;
 
@@ -95,18 +97,27 @@ function updateConnectButton(connected) {
 		connectBtn.innerHTML = `<img src="logohellocelo.png" alt="HelloCelo logo" />Connect Wallet`;
 	}
 }
+
 function disconnectWallet() {
 	walletConnected = false;
 	currentAccount = null;
+	currentUser = null;
 	walletStatus.innerText = '';
 	balanceSpan.innerText = '0';
 	remainingSpan.innerText = '0';
 	updateConnectButton(false);
 
+	// Wyczyść subskrypcje Firebase
+	if (unsubscribeMessages) {
+		unsubscribeMessages();
+		unsubscribeMessages = null;
+	}
+
 	provider = null;
 	signer = null;
 	contract = null;
 }
+
 // --- Switch to Celo Mainnet ---
 async function switchToCelo() {
 	if (!provider) return false;
@@ -144,7 +155,101 @@ async function switchToCelo() {
 	}
 }
 
-// --- Connect Wallet ---
+// --- Funkcja rejestracji nicku ---
+async function registerNickname(nickname) {
+	if (!currentAccount) return false;
+	
+	try {
+		await userService.registerUser(currentAccount, nickname);
+		currentUser = { 
+			walletAddress: currentAccount, 
+			nickname: nickname,
+			isRegistered: true 
+		};
+		return true;
+	} catch (error) {
+		console.error('Registration failed:', error);
+		alert('Failed to register nickname');
+		return false;
+	}
+}
+
+// --- Modal do rejestracji nicku ---
+function showNicknameModal() {
+	const modal = document.createElement('div');
+	modal.className = 'modal-overlay';
+	
+	modal.innerHTML = `
+		<div class="modal-content">
+			<h3>Choose Your Nickname</h3>
+			<input type="text" id="nicknameInput" class="modal-input" 
+				   placeholder="Enter your nickname (3-32 chars)" maxlength="32" />
+			<button id="saveNickname" class="modal-button">Save Nickname</button>
+			<p class="modal-info">This will be your anonymous identity in the app</p>
+		</div>
+	`;
+	
+	document.body.appendChild(modal);
+	
+	document.getElementById('saveNickname').addEventListener('click', async () => {
+		const nickname = document.getElementById('nicknameInput').value.trim();
+		if (nickname.length < 3) {
+			alert('Nickname must be at least 3 characters long');
+			return;
+		}
+		
+		const success = await registerNickname(nickname);
+		if (success) {
+			modal.remove();
+			showMainApp();
+		}
+	});
+}
+
+// --- Główna aplikacja po rejestracji ---
+async function showMainApp() {
+	// Ukryj modal jeśli jest
+	const modal = document.querySelector('.modal-overlay');
+	if (modal) modal.remove();
+	
+	// Zaktualizuj UI
+	walletConnected = true;
+	updateConnectButton(true);
+	
+	// Załaduj dane blockchain (dla balansu i nagród)
+	await updateBalance();
+	await updateRemaining();
+	
+	// WYŁĄCZ ładowanie wiadomości z blockchain - używamy Firebase z nickami
+	// loadMessages(); // <-- TO WYŁĄCZ!
+	
+	// Wyłącz nasłuchiwanie eventów z blockchain dla wiadomości
+	// listenEvents(); // <-- TO TEŻ WYŁĄCZ!
+	
+	// Subskrybuj wiadomości z Firebase (z nickami)
+	if (unsubscribeMessages) unsubscribeMessages();
+	unsubscribeMessages = userService.subscribeToMessages(displayMessages);
+	
+	console.log("App ready! Using Firebase messages with nicknames");
+}
+
+// --- Wyświetlanie wiadomości z Firebase ---
+function displayMessages(messages) {
+	messagesUl.innerHTML = '';
+	
+	messages.forEach(msg => {
+		const li = document.createElement('li');
+		const time = msg.timestamp?.toDate ? msg.timestamp.toDate() : new Date();
+		
+		li.innerHTML = `
+			<strong style="color: #00ffd0;">${msg.nickname}</strong>: ${msg.content}
+			<br><small style="opacity: 0.7;">${time.toLocaleString()}</small>
+		`;
+		messagesUl.appendChild(li);
+	});
+}
+
+// --- Connect Wallet (ZMODYFIKOWANA) ---
 async function connectWallet() {
 	let injected = window.celo || window.ethereum;
 	if (!injected) {
@@ -165,10 +270,14 @@ async function connectWallet() {
 
 		contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-		await updateBalance();
-		await updateRemaining();
-		await loadMessages();
-		listenEvents();
+		// SPRAWDŹ CZY MA NICK W FIREBASE
+		const userData = await userService.getUser(currentAccount);
+		if (userData) {
+			currentUser = userData;
+			showMainApp();
+		} else {
+			showNicknameModal();
+		}
 
 		return true;
 	} catch (err) {
@@ -204,28 +313,40 @@ async function loadMessages() {
 	reversed.forEach(m => {
 		const li = document.createElement('li');
 		li.innerText = `[${new Date(Number(m.timestamp) * 1000).toLocaleString()}] ${m.sender}: ${m.content}`;
-		messagesUl.appendChild(li); // dodaj na dół listy, bo tablica już jest odwrócona
+		messagesUl.appendChild(li);
 	});
 }
 
-// --- Send Message ---
+// --- Send Message (ZMODYFIKOWANA) ---
 async function sendMessage() {
-	if (!contract || !currentAccount) {
-		if (!(await connectWallet())) return;
+	if (!currentUser) {
+		alert('Please register your nickname first');
+		return;
 	}
+	
 	const text = messageInput.value.trim();
 	if (!text) return alert('Message cannot be empty');
 
 	try {
+		// 1. Wyślij do FIREBASE (dla użytkowników - z nickiem)
+		await userService.sendMessage({
+			content: text,
+			nickname: currentUser.nickname,
+			walletAddress: currentAccount,
+			anonymous: true
+		});
+
+		// 2. Wyślij do BLOCKCHAIN (dla nagrody)
 		const tx = await contract.sendMessage(text);
 		await tx.wait();
+		
 		messageInput.value = '';
 		await updateBalance();
 		await updateRemaining();
-		await loadMessages();
+		
 	} catch (err) {
 		console.error(err);
-		alert('Back tomorrow :)');
+		alert('Failed to send message: ' + (err.message || 'Check console'));
 	}
 }
 
@@ -250,7 +371,7 @@ function listenEvents() {
 // --- Event listeners ---
 connectBtn.addEventListener('click', async () => {
 	if (!walletConnected) {
-		const success = await connectWallet(); // Twoja async funkcja
+		const success = await connectWallet();
 		if (success) {
 			walletConnected = true;
 			updateConnectButton(true);
