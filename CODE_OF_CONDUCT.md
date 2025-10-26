@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to make participation in **HelloCeloV2** a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
+In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to make participation in **HUB Portal** (formerly HelloCeloV2) a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
 ## Our Standards
 
@@ -13,13 +13,15 @@ Examples of behavior that contributes to creating a positive environment include
 - Gracefully accepting constructive criticism  
 - Focusing on what is best for the community  
 - Showing empathy towards other community members
+- Respecting user privacy and data in our decentralized chat application
 
 Examples of unacceptable behavior by participants include:
 
 - The use of sexualized language or imagery and unwelcome sexual attention or advances  
 - Trolling, insulting/derogatory comments, and personal or political attacks  
 - Public or private harassment  
-- Publishing others’ private information, such as a physical or electronic address, without explicit permission  
+- Publishing others' private information, such as wallet addresses or personal data, without explicit permission  
+- Spamming, scamming, or any form of malicious activity in the chat application
 - Other conduct which could reasonably be considered inappropriate in a professional setting
 
 ## Enforcement Responsibilities
@@ -30,18 +32,34 @@ Project maintainers have the right and responsibility to remove, edit, or reject
 
 ## Reporting Guidelines
 
-If you experience or witness unacceptable behavior, please report it by contacting **marcin.zych.krk@gmail.com**. All complaints will be reviewed and investigated promptly and fairly.
+If you experience or witness unacceptable behavior, please report it by creating a private issue in the GitHub repository or through the designated reporting channels mentioned in the project documentation.
 
 ## Scope
 
-This Code of Conduct applies both within project spaces and in public spaces when an individual is representing the project or its community. Examples of representing a project or community include using an official project e-mail address, posting via an official social media account, or acting as an appointed representative at an online or offline event. Representation of a project may be further defined and clarified by project maintainers.
+This Code of Conduct applies both within project spaces and in public spaces when an individual is representing the project or its community. This includes but is not limited to:
+
+- GitHub repositories and discussions
+- The HUB Portal chat application
+- Social media accounts representing the project
+- Community forums and chat channels
+- Online or offline events
+
+Representation of a project may be further defined and clarified by project maintainers.
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at **marcin.zych.krk@gmail.com**. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported through the project's designated reporting channels. All complaints will be reviewed and investigated promptly and fairly.
 
 Project maintainers are obligated to enforce this Code of Conduct in all project spaces and may also apply it to public spaces when an individual is representing the project.  
 Violations of the Code of Conduct may result in temporary or permanent bans from the project community.
+
+## Privacy and Security
+
+Given the decentralized nature of HUB Portal, we emphasize:
+- Respect for user privacy and wallet addresses
+- Zero tolerance for spam or scam attempts
+- Protection against harassment through private messaging features
+- Responsible disclosure of security vulnerabilities
 
 ## Attribution
 
