@@ -1,81 +1,133 @@
-# HelloCelo DApp
+# HUB Portal - Decentralized Social Chat
 
-**HelloCelo** is an innovative project on the **Celo blockchain**, combining an **ERC20 token (HC)** with a simple **message board**.  
-Users can post messages and receive **HC tokens** as a reward.
+**HUB Portal** is an innovative decentralized social chat application on the **Celo blockchain**, combining **HC token rewards** with real-time messaging and private conversations.
 
 ---
 
 ## 🌟 Key Features
 
+### 💬 Messaging System
+- **Public Chat Room** - Real-time messaging for all users
+- **Private Messaging** - Secure 1-on-1 conversations
+- **Message Rewards** - Earn HC tokens for public messages
+
+### 👥 User Management
+- **Persistent User Profiles** - Custom nicknames and avatars
+- **Real-time Online Status** - See who's currently active
+- **User Search** - Find and connect with other users
+- **Profile Lock** - Nicknames are permanent after registration (creator exception)
+
+### 🔔 Notification System
+- **Unread Message Indicators** - Visual badges for new messages
+- **Real-time Notifications** - Toast notifications for new DMs
+- **Message History** - Persistent chat history across sessions
+
+### 🎨 User Experience
+- **Tabbed Interface** - Switch between Public Chat and All Users
+- **Glassmorphism Design** - Modern, translucent UI
+- **Responsive Layout** - Works on desktop and mobile
+- **Custom Avatars** - Choose from emojis or upload custom images
+
+---
+
+## 🖥️ How to Use
+
+### 1. **First Time Setup**
+- **Connect your Celo wallet** (MetaMask, Rabby, or Celo Extension)
+- **Create your profile** - Choose nickname and avatar (one-time setup)
+- **Profile is permanent** - Nickname cannot be changed after registration
+
+### 2. **Public Chat**
+- **Type messages** in the main chat input
+- **Earn 1 HC token** per message (up to 10 daily)
+- **View all public messages** in real-time
+
+### 3. **Private Messaging**
+- **Browse users** in the sidebar (Online Users tab)
+- **Click any user** to start a private conversation
+- **First message requires signature** for security
+- **Real-time notifications** for new private messages
+
+### 4. **User Management**
+- **Switch tabs** between "Public Chat" and "All Users"
+- **Search users** by nickname or wallet address
+- **See online status** - Green dot for active users
+- **Unread indicators** - Red badges show new messages
+
+---
+
+## 💎 HC Token Mechanics
+
 - **Token:** HelloCelo (HC), ERC20 standard  
 - **Symbol:** HC  
-- **Decimals:** 18 (`decimals = 18`)  
-- **Reward per message:** 1 HC (`REWARD_PER_MESSAGE`)  
-- **Maximum supply:** 1,000,000 HC (`MAX_SUPPLY`)  
-- **Daily limit:** 10 rewards per address per day (`MAX_DAILY_REWARDS`)  
-- **Security:**  
-  - Anti-spam and bot protection  
-  - Maximum message length: 280 characters  
-  - Contract calls blocked (only real accounts can send messages)  
-- **Transparency:** all rules enforced on-chain  
+- **Decimals:** 18
+- **Reward per message:** 1 HC
+- **Maximum supply:** 1,000,000 HC
+- **Daily limit:** 10 rewards per address
+- **Security:** Anti-spam protection with daily limits
 
 ---
 
-## 🖥️ How to Use the DApp
+## 🔧 Technical Features
 
-1. **Open the HelloCelo application** in your browser (link in "Useful Links" section).  
-2. **Connect your Celo wallet**  
-   - Supported wallets: MetaMask, Rabby, Celo Extension Wallet  
-   - Click the `Connect Wallet` button in the app  
+### Smart Contract
+- **Contract Address:** `0x12b6e1f30cb714e8129F6101a7825a910a9982F2`
+- **ERC20 Standard** with minting functionality
+- **Daily reward limits** enforced on-chain
 
-3. **Send a message**  
-   - Type your message in the text box and click `Send Message`  
-   - You will receive **1 HC** as a reward if you haven't exceeded your daily limit  
+### Backend Infrastructure
+- **Firebase Firestore** - Real-time database
+- **User Profiles** - Persistent storage with avatars
+- **Message History** - All chats stored securely
+- **Online Status** - Real-time presence tracking
 
-4. **Check your HC balance**  
-   - Your balance updates automatically after sending a message  
-
-5. **Check remaining daily rewards**  
-   - The `Remaining Daily Rewards` field shows how many rewards you can still claim today  
-   - Counter resets every UTC day  
-
-6. **Browse messages**  
-   - The `Messages` section displays all messages sent in the DApp  
-   - Each message shows **sender address**, **content**, and **timestamp**  
+### Security
+- **Wallet Signatures** - Required for critical actions
+- **Profile Lock** - Prevents nickname squatting
+- **Spam Protection** - Daily message limits
+- **Private Chats** - End-to-end conversation isolation
 
 ---
 
-### ℹ️ HC Token Mechanics
+## 📱 Interface Overview
 
-- **ERC20 minimal standard** – supports transfers, balances, approve/allowance  
-- **Minting:** 1 HC is automatically minted to the user’s address after sending a message  
-- **Max supply:** total supply cannot exceed 1,000,000 HC  
-- **Daily limit:** maximum 10 rewards per address per UTC day  
-- **Counter reset:** daily rewards counter resets at midnight UTC  
-- **Contract calls blocked:** only real accounts can send messages (prevents spam)  
+### Sidebar
+- **User Info** - Your profile and HC balance
+- **Tab Navigation** - Switch between views
+- **Online Users** - Currently active users
+- **All Users** - Complete user directory
+- **Search** - Find users quickly
+
+### Main Content
+- **Public Chat** - Community messaging
+- **Message Input** - Send public messages
+- **Token Stats** - Your HC balance and daily limits
+
+### DM Panel
+- **Private Conversations** - 1-on-1 chats
+- **User Info** - Chat partner details
+- **Message History** - Complete conversation log
 
 ---
 
-### Mainnet Contract
+## 🌐 Useful Links
 
-- **Contract Address:** `0x12b6e1f30cb714e8129F6101a7825a910a9982F2`  
-- All rules above are enforced on-chain  
+- **Live DApp:** [https://mystique85.github.io/HelloCeloV2/](https://mystique85.github.io/HelloCeloV2/)
+- **Contract Address:** `0x12b6e1f30cb714e8129F6101a7825a910a9982F2`
+- [Celo Documentation](https://docs.celo.org/)
+- [Firebase Documentation](https://firebase.google.com/docs)
 
 ---
 
 ## 📜 License
 
-This project is released under the **MIT License**.  
+This project is released under the **MIT License**.
 
 ---
 
-## 📖 Useful Links
-
-- **DApp:** [https://mystique85.github.io/HelloCeloV2/](https://mystique85.github.io/HelloCeloV2/)  
-- [Celo Docs](https://docs.celo.org/)  
-- [Ethers.js Docs](https://docs.ethers.org/v5/)  
-
-
 ## 🤝 Contributing
+
 We welcome feedback and contributions!  
 Please check out our [Contributing Guide](./CONTRIBUTING.md) for more details.
+
+---
