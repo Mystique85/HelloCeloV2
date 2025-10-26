@@ -11,7 +11,8 @@ import {
   orderBy, 
   onSnapshot, 
   serverTimestamp,
-  where
+  where,
+  updateDoc
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ethers } from 'ethers';
@@ -111,7 +112,7 @@ const AVAILABLE_AVATARS = [
 ];
 
 // Twórca aplikacji (ZMIEŃ NA SWÓJ ADRES)
-const CREATOR_ADDRESS = "0xTwojAdresTutaj";
+const CREATOR_ADDRESS = "0x443baEF78686Fc6b9e5e6DaEA24fe26a170c5ac8";
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -130,14 +131,16 @@ function App() {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [isSending, setIsSending] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [activeDMChat, setActiveDMChat] = useState(null);
   const [dmChats, setDmChats] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showNicknameWarning, setShowNicknameWarning] = useState(false);
   const [showDMSignature, setShowDMSignature] = useState(false);
   const [pendingDMUser, setPendingDMUser] = useState(null);
   const [newMessageNotification, setNewMessageNotification] = useState(null);
   const [highlightedUser, setHighlightedUser] = useState(null);
+  const [unreadMessages, setUnreadMessages] = useState({});
+  const [activeTab, setActiveTab] = useState('public'); // 'public' or 'users'
 
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
@@ -146,6 +149,7 @@ function App() {
   const [storage, setStorage] = useState(null);
   const unsubscribeRef = useRef(null);
   const unsubscribeDMRef = useRef(null);
+  const unsubscribeUsersRef = useRef(null);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -190,6 +194,18 @@ function App() {
       const userRef = doc(db, 'users', walletAddress.toLowerCase());
       const userSnap = await getDoc(userRef);
       return userSnap.exists() ? userSnap.data() : null;
+    },
+
+    async updateUserLastSeen(walletAddress) {
+      if (!walletAddress) return;
+      const userRef = doc(db, 'users', walletAddress.toLowerCase());
+      try {
+        await updateDoc(userRef, {
+          lastSeen: serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error updating last seen:', error);
+      }
     },
 
     async searchUsers(query) {
@@ -308,7 +324,6 @@ function App() {
       
       const reader = new FileReader();
       reader.onload = (e) => {
-        // Użyj Base64 bezpośrednio - to ominie problem CORS
         const base64Image = e.target.result;
         setAvatarPreview(base64Image);
         setCustomAvatar(file);
@@ -392,7 +407,6 @@ function App() {
       let avatarType = 'emoji';
 
       if (customAvatar && avatarPreview) {
-        // UŻYJ BASE64 ZAMIAST UPLOADU DO FIREBASE
         customAvatarUrl = avatarPreview;
         finalAvatar = avatarPreview;
         avatarType = 'custom';
@@ -419,35 +433,41 @@ function App() {
   const showMainApp = async () => {
     setWalletConnected(true);
     
+    // Update user's last seen
+    userService.updateUserLastSeen(currentAccount);
+    
+    // Subscribe to public messages
     if (unsubscribeRef.current) unsubscribeRef.current();
     unsubscribeRef.current = userService.subscribeToMessages((newMessages) => {
       setMessages(newMessages);
-      
-      // Sprawdź czy są nowe wiadomości od innych użytkowników
-      const latestMessage = newMessages[0];
-      if (latestMessage && latestMessage.walletAddress !== currentAccount) {
-        setNewMessageNotification({
-          user: latestMessage.nickname,
-          message: latestMessage.content
-        });
-        
-        // Auto-hide notification after 5 seconds
-        setTimeout(() => {
-          setNewMessageNotification(null);
-        }, 5000);
-      }
     });
     
-    userService.subscribeToUsers((users) => {
-      setOnlineUsers(users.filter(user => 
-        user.lastSeen && 
-        new Date() - user.lastSeen.toDate() < 300000
-      ));
+    // Subscribe to all users
+    if (unsubscribeUsersRef.current) unsubscribeUsersRef.current();
+    unsubscribeUsersRef.current = userService.subscribeToUsers((users) => {
+      setAllUsers(users);
+      
+      // Calculate online users (last seen < 5 minutes)
+      const online = users.filter(user => {
+        if (!user.lastSeen) return false;
+        const lastSeen = user.lastSeen.toDate();
+        const now = new Date();
+        return (now - lastSeen) < 5 * 60 * 1000; // 5 minutes
+      });
+      setOnlineUsers(online);
     });
 
+    // Subscribe to user chats
     userService.subscribeToUserChats(currentAccount, (chats) => {
       setDmChats(chats);
     });
+
+    // Update last seen every minute
+    const lastSeenInterval = setInterval(() => {
+      userService.updateUserLastSeen(currentAccount);
+    }, 60000);
+
+    return () => clearInterval(lastSeenInterval);
   };
 
   const connectWallet = async () => {
@@ -474,7 +494,6 @@ function App() {
       const contractInstance = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, walletSigner);
       setContract(contractInstance);
 
-      // Podpis przy connect - używamy bieżącego providera
       const signature = await requestSignature(
         "Connect to HUB Portal - this signature verifies your wallet ownership",
         web3Provider
@@ -487,19 +506,17 @@ function App() {
 
       const userData = await userService.getUser(account);
       
-      setShowNicknameModal(true);
-      
-      if (userData) {
-        setNicknameInput(userData.nickname || '');
-        setSelectedAvatar(userData.avatar || '🐶');
-        if (userData.avatarType === 'custom') {
-          setAvatarPreview(userData.avatar);
-        }
-      } else {
+      if (!userData || !userData.isRegistered) {
+        // First time user - show registration
+        setShowNicknameModal(true);
         setNicknameInput('');
         setSelectedAvatar('🐶');
         setAvatarPreview(null);
         setCustomAvatar(null);
+      } else {
+        // Existing user - go straight to app
+        setCurrentUser(userData);
+        showMainApp();
       }
 
       return true;
@@ -586,6 +603,12 @@ function App() {
       user: otherUser
     });
 
+    // Clear unread count for this user
+    setUnreadMessages(prev => ({
+      ...prev,
+      [otherUser.walletAddress]: 0
+    }));
+
     if (unsubscribeDMRef.current) unsubscribeDMRef.current();
     unsubscribeDMRef.current = userService.subscribeToPrivateMessages(chatId, (newMessages) => {
       setPrivateMessages(newMessages);
@@ -595,7 +618,20 @@ function App() {
         const latestDM = newMessages[newMessages.length - 1];
         if (latestDM.sender !== currentAccount) {
           setHighlightedUser(otherUser.walletAddress);
-          setTimeout(() => setHighlightedUser(null), 3000);
+          setUnreadMessages(prev => ({
+            ...prev,
+            [otherUser.walletAddress]: (prev[otherUser.walletAddress] || 0) + 1
+          }));
+          
+          // Show notification
+          setNewMessageNotification({
+            user: otherUser.nickname,
+            message: latestDM.content,
+            avatar: otherUser.avatar,
+            avatarType: otherUser.avatarType
+          });
+          
+          setTimeout(() => setNewMessageNotification(null), 5000);
         }
       }
     });
@@ -656,17 +692,7 @@ function App() {
     }
   };
 
-  const searchUsers = async () => {
-    if (!searchQuery.trim()) return;
-    
-    try {
-      const results = await userService.searchUsers(searchQuery);
-      console.log('Search results:', results);
-    } catch (error) {
-      console.error('Search failed:', error);
-    }
-  };
-
+  // DODAJ BRAKUJĄCĄ FUNKCJĘ disconnectWallet
   const disconnectWallet = () => {
     setWalletConnected(false);
     setCurrentAccount('');
@@ -674,12 +700,14 @@ function App() {
     setBalance('0');
     setRemaining('0');
     setOnlineUsers([]);
+    setAllUsers([]);
     setActiveDMChat(null);
     setPrivateMessages([]);
     setDmChats([]);
     setSearchQuery('');
     setNewMessageNotification(null);
     setHighlightedUser(null);
+    setUnreadMessages({});
 
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
@@ -691,6 +719,11 @@ function App() {
       unsubscribeDMRef.current = null;
     }
 
+    if (unsubscribeUsersRef.current) {
+      unsubscribeUsersRef.current();
+      unsubscribeUsersRef.current = null;
+    }
+
     setProvider(null);
     setSigner(null);
     setContract(null);
@@ -700,23 +733,32 @@ function App() {
     return currentAccount.toLowerCase() === CREATOR_ADDRESS.toLowerCase();
   };
 
+  const shouldShowEditProfile = () => {
+    if (!currentUser) return false;
+    if (canEditProfile()) return true; // Creator can always edit
+    return !currentUser.nicknameLocked; // Others only if not locked
+  };
+
   useEffect(() => {
     return () => {
       if (unsubscribeRef.current) unsubscribeRef.current();
       if (unsubscribeDMRef.current) unsubscribeDMRef.current();
+      if (unsubscribeUsersRef.current) unsubscribeUsersRef.current();
     };
   }, []);
 
   const getOtherParticipant = (chat) => {
     if (!currentUser) return null;
     const otherParticipant = chat.participants.find(p => p !== currentAccount.toLowerCase());
-    return onlineUsers.find(user => user.walletAddress.toLowerCase() === otherParticipant);
+    return allUsers.find(user => user.walletAddress.toLowerCase() === otherParticipant);
   };
 
-  const filteredOnlineUsers = onlineUsers.filter(user => 
+  const filteredUsers = allUsers.filter(user => 
     user.nickname.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.walletAddress.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalUnreadMessages = Object.values(unreadMessages).reduce((sum, count) => sum + count, 0);
 
   return (
     <div className="app-container">
@@ -729,7 +771,22 @@ function App() {
       {newMessageNotification && (
         <div className="message-notification">
           <div className="notification-content">
-            <span className="notification-icon">💬</span>
+            <div className="user-avatar" style={{ 
+              fontSize: newMessageNotification.avatarType === 'emoji' ? '1.5rem' : 'inherit',
+              background: newMessageNotification.avatarType === 'emoji' ? 'var(--primary-gradient)' : 'transparent',
+              width: '40px',
+              height: '40px'
+            }}>
+              {newMessageNotification.avatarType === 'emoji' ? (
+                newMessageNotification.avatar
+              ) : (
+                <img 
+                  src={newMessageNotification.avatar} 
+                  alt="Avatar" 
+                  style={{width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover'}}
+                />
+              )}
+            </div>
             <div className="notification-text">
               <strong>New message from {newMessageNotification.user}</strong>
               <span>{newMessageNotification.message}</span>
@@ -796,43 +853,116 @@ function App() {
                 <div className="user-details">
                   <strong>{currentUser.nickname}</strong>
                   <span>HC: {balance}</span>
+                  {totalUnreadMessages > 0 && (
+                    <span className="unread-badge">📩 {totalUnreadMessages} unread</span>
+                  )}
                 </div>
               </>
             )}
           </div>
 
-          <div className="online-users">
-            <h4>Online Users ({filteredOnlineUsers.length})</h4>
-            <div className="users-list">
-              {filteredOnlineUsers
-                .filter(user => user.walletAddress !== currentAccount)
-                .map(user => (
-                  <div 
-                    key={user.walletAddress} 
-                    className={`user-item ${activeDMChat?.user?.walletAddress === user.walletAddress ? 'active' : ''} ${
-                      highlightedUser === user.walletAddress ? 'highlighted' : ''
-                    }`}
-                    onClick={() => startDMChat(user)}
-                  >
-                    <div className="user-avatar" style={{ 
-                      fontSize: user.avatarType === 'emoji' ? '1.2rem' : 'inherit',
-                      background: user.avatarType === 'emoji' ? 'var(--primary-gradient)' : 'transparent'
-                    }}>
-                      {user.avatarType === 'emoji' ? (
-                        user.avatar
-                      ) : (
-                        <img 
-                          src={user.avatar} 
-                          alt="Avatar" 
-                          style={{width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover'}}
-                        />
-                      )}
-                    </div>
-                    <span>{user.nickname}</span>
-                    <span className="status-dot"></span>
-                  </div>
-                ))}
-            </div>
+          {/* Tab Navigation */}
+          <div className="tab-navigation">
+            <button 
+              className={`tab-button ${activeTab === 'public' ? 'active' : ''}`}
+              onClick={() => setActiveTab('public')}
+            >
+              💬 Public Chat
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
+              onClick={() => setActiveTab('users')}
+            >
+              👥 All Users ({allUsers.length})
+              {totalUnreadMessages > 0 && (
+                <span className="tab-notification">{totalUnreadMessages}</span>
+              )}
+            </button>
+          </div>
+
+          {/* Users List based on active tab */}
+          <div className="users-section">
+            {activeTab === 'public' ? (
+              <>
+                <h4>Online Users ({onlineUsers.length})</h4>
+                <div className="users-list">
+                  {onlineUsers
+                    .filter(user => user.walletAddress !== currentAccount)
+                    .map(user => (
+                      <div 
+                        key={user.walletAddress} 
+                        className={`user-item ${activeDMChat?.user?.walletAddress === user.walletAddress ? 'active' : ''} ${
+                          highlightedUser === user.walletAddress ? 'highlighted' : ''
+                        }`}
+                        onClick={() => startDMChat(user)}
+                      >
+                        <div className="user-avatar" style={{ 
+                          fontSize: user.avatarType === 'emoji' ? '1.2rem' : 'inherit',
+                          background: user.avatarType === 'emoji' ? 'var(--primary-gradient)' : 'transparent'
+                        }}>
+                          {user.avatarType === 'emoji' ? (
+                            user.avatar
+                          ) : (
+                            <img 
+                              src={user.avatar} 
+                              alt="Avatar" 
+                              style={{width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover'}}
+                            />
+                          )}
+                        </div>
+                        <span>{user.nickname}</span>
+                        {unreadMessages[user.walletAddress] > 0 && (
+                          <span className="unread-count">{unreadMessages[user.walletAddress]}</span>
+                        )}
+                        <span className="status-dot"></span>
+                      </div>
+                    ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <h4>All Registered Users ({filteredUsers.length})</h4>
+                <div className="users-list">
+                  {filteredUsers
+                    .filter(user => user.walletAddress !== currentAccount)
+                    .map(user => {
+                      const isOnline = onlineUsers.some(onlineUser => 
+                        onlineUser.walletAddress === user.walletAddress
+                      );
+                      return (
+                        <div 
+                          key={user.walletAddress} 
+                          className={`user-item ${activeDMChat?.user?.walletAddress === user.walletAddress ? 'active' : ''} ${
+                            highlightedUser === user.walletAddress ? 'highlighted' : ''
+                          } ${!isOnline ? 'offline' : ''}`}
+                          onClick={() => startDMChat(user)}
+                        >
+                          <div className="user-avatar" style={{ 
+                            fontSize: user.avatarType === 'emoji' ? '1.2rem' : 'inherit',
+                            background: user.avatarType === 'emoji' ? 'var(--primary-gradient)' : 'transparent',
+                            opacity: isOnline ? 1 : 0.6
+                          }}>
+                            {user.avatarType === 'emoji' ? (
+                              user.avatar
+                            ) : (
+                              <img 
+                                src={user.avatar} 
+                                alt="Avatar" 
+                                style={{width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover'}}
+                              />
+                            )}
+                          </div>
+                          <span>{user.nickname}</span>
+                          {unreadMessages[user.walletAddress] > 0 && (
+                            <span className="unread-count">{unreadMessages[user.walletAddress]}</span>
+                          )}
+                          <span className={`status-dot ${isOnline ? 'online' : 'offline'}`}></span>
+                        </div>
+                      );
+                    })}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="sidebar-stats">
@@ -841,7 +971,7 @@ function App() {
               <strong>{remaining}/10</strong>
             </div>
             
-            {currentUser && canEditProfile() && (
+            {shouldShowEditProfile() && (
               <button 
                 className="disconnect-btn"
                 onClick={() => setShowNicknameModal(true)}
@@ -850,7 +980,7 @@ function App() {
                   borderColor: 'var(--accent-green)'
                 }}
               >
-                ✏️ Edit Profile (Creator)
+                ✏️ Edit Profile {canEditProfile() && '(Creator)'}
               </button>
             )}
             
@@ -874,6 +1004,9 @@ function App() {
               <div className="header-stats">
                 <span>💎 HC: {balance}</span>
                 <span>🎯 Left: {remaining}/10</span>
+                {totalUnreadMessages > 0 && (
+                  <span className="unread-indicator">📩 {totalUnreadMessages}</span>
+                )}
               </div>
             </div>
           </header>
@@ -955,7 +1088,12 @@ function App() {
                 </div>
                 <div>
                   <strong>{activeDMChat.user.nickname}</strong>
-                  <span className="online-status">Online</span>
+                  <span className="online-status">
+                    {onlineUsers.some(u => u.walletAddress === activeDMChat.user.walletAddress) 
+                      ? 'Online' 
+                      : 'Offline'
+                    }
+                  </span>
                 </div>
               </div>
               <button className="close-dm" onClick={closeDMChat}>×</button>
