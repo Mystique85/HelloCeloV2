@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
+import { ethers } from 'ethers';
 import { db } from './config/firebase';
 import { 
   collection, addDoc, query, orderBy, onSnapshot, 
-  serverTimestamp, doc, setDoc, getDoc, updateDoc, where,
-  getDocs
+  serverTimestamp, doc, setDoc, getDoc, updateDoc, where 
 } from 'firebase/firestore';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 
+// ========== KONFIGURACJA ==========
 const CONTRACT_ADDRESS = "0x12b6e1f30cb714e8129F6101a7825a910a9982F2";
 const CONTRACT_ABI = [
   {
@@ -589,193 +588,33 @@ const CREATOR_ADDRESS = "0x443baEF78686Fc6b9e5e6DaEA24fe26a170c5ac8";
 
 const AVAILABLE_AVATARS = ['🐶', '🐱', '🦊', '🐯', '🐻', '🐼', '🐨', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦅'];
 
-const InteractiveNetworkBackground = () => {
-  const canvasRef = useRef(null);
-  const animationRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    let nodes = [];
-    let mouse = { x: 0, y: 0 };
-
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    const createNodes = () => {
-      const nodeCount = Math.min(300, Math.floor((window.innerWidth * window.innerHeight) / 3000));
-      nodes = [];
-      
-      for (let i = 0; i < nodeCount; i++) {
-        nodes.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
-          radius: Math.random() * 1.5 + 0.5,
-          color: randomNodeColor(),
-        });
-      }
-    };
-
-    const randomNodeColor = () => {
-      const colors = [
-        '#00ff88', '#8b5cf6', '#3b82f6', '#f59e0b', '#ef4444', '#10b981', '#8b5cf6'
-      ];
-      return colors[Math.floor(Math.random() * colors.length)];
-    };
-
-    const handleMouseMove = (e) => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
-    };
-
-    const updateNodes = () => {
-      nodes.forEach(node => {
-        node.x += node.vx;
-        node.y += node.vy;
-
-        if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
-        if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
-
-        const dx = node.x - mouse.x;
-        const dy = node.y - mouse.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < 150) {
-          const force = (150 - distance) / 150;
-          node.vx += (dx / distance) * force * 0.3;
-          node.vy += (dy / distance) * force * 0.3;
-        }
-
-        const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
-        if (speed > 1.5) {
-          node.vx = (node.vx / speed) * 1.5;
-          node.vy = (node.vy / speed) * 1.5;
-        }
-      });
-    };
-
-    const drawNodes = () => {
-      nodes.forEach(node => {
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius * 2, 0, Math.PI * 2);
-        const gradient = ctx.createRadialGradient(
-          node.x, node.y, 0,
-          node.x, node.y, node.radius * 2
-        );
-        gradient.addColorStop(0, node.color + '30');
-        gradient.addColorStop(1, node.color + '00');
-        ctx.fillStyle = gradient;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-        ctx.fillStyle = node.color;
-        ctx.fill();
-      });
-    };
-
-    const drawConnections = () => {
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const nodeA = nodes[i];
-          const nodeB = nodes[j];
-          const dx = nodeA.x - nodeB.x;
-          const dy = nodeA.y - nodeB.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < 120) {
-            const opacity = 1 - (distance / 120);
-            
-            const mouseDistA = Math.sqrt(
-              Math.pow(nodeA.x - mouse.x, 2) + 
-              Math.pow(nodeA.y - mouse.y, 2)
-            );
-            const mouseDistB = Math.sqrt(
-              Math.pow(nodeB.x - mouse.x, 2) + 
-              Math.pow(nodeB.y - mouse.y, 2)
-            );
-            
-            let lineWidth = 0.3;
-            let color = `rgba(139, 92, 246, ${opacity * 0.2})`;
-            
-            if (mouseDistA < 80 || mouseDistB < 80) {
-              lineWidth = 0.8;
-              color = `rgba(0, 255, 136, ${opacity * 0.6})`;
-            }
-
-            ctx.beginPath();
-            ctx.moveTo(nodeA.x, nodeA.y);
-            ctx.lineTo(nodeB.x, nodeB.y);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = lineWidth;
-            ctx.stroke();
-          }
-        }
-      }
-    };
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      updateNodes();
-      drawConnections();
-      drawNodes();
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    resizeCanvas();
-    createNodes();
-    animate();
-
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-      createNodes();
-    });
-    window.addEventListener('mousemove', handleMouseMove);
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      window.removeEventListener('mousemove', handleMouseMove);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0"
-      style={{ background: 'transparent' }}
-    />
-  );
-};
-
+// ========== GŁÓWNY KOMPONENT ==========
 function App() {
-  const { isConnected, address } = useAccount();
-  const { writeContract } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt();
-  
+  // Podstawowe stany
+  const [walletConnected, setWalletConnected] = useState(false);
   const [currentAccount, setCurrentAccount] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  
+  // Stan czatu
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  
+  // Stan użytkowników
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [nicknameInput, setNicknameInput] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('🐶');
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [activeTab, setActiveTab] = useState('public');
+  
+  // Stan kontraktu
+  const [contract, setContract] = useState(null);
   const [balance, setBalance] = useState('0');
   const [remaining, setRemaining] = useState('0');
+  
+  // Stan prywatnych wiadomości - DODANE NOWE STANY
   const [activeDMChat, setActiveDMChat] = useState(null);
   const [showDMModal, setShowDMModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -785,78 +624,51 @@ function App() {
   const [activePrivateMessages, setActivePrivateMessages] = useState([]);
   const [privateMessageInput, setPrivateMessageInput] = useState('');
   const [isSendingPrivate, setIsSendingPrivate] = useState(false);
-  const [pendingMessageIds, setPendingMessageIds] = useState(new Set());
-  const [toastNotification, setToastNotification] = useState(null);
-  const [unreadCounts, setUnreadCounts] = useState({});
 
   const messagesEndRef = useRef(null);
   const privateMessagesEndRef = useRef(null);
 
-  const { data: balanceData } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: 'balanceOf',
-    args: [currentAccount],
-    query: {
-      enabled: !!currentAccount,
-    }
-  });
-
-  const { data: remainingData } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: 'remainingRewards',
-    args: [currentAccount],
-    query: {
-      enabled: !!currentAccount,
-    }
-  });
-
+  // ========== EFFECTS ==========
   useEffect(() => {
-    if (balanceData) {
-      setBalance((Number(balanceData) / 1e18).toString());
-    }
-  }, [balanceData]);
-
-  useEffect(() => {
-    if (remainingData) {
-      setRemaining(remainingData.toString());
-    }
-  }, [remainingData]);
-
-  useEffect(() => {
-    if (isConnected && address) {
-      setCurrentAccount(address);
-      localStorage.setItem('hub_portal_account', address);
-      
-      const savedUserData = localStorage.getItem('hub_portal_user_data');
+    const savedAccount = localStorage.getItem('hub_portal_account');
+    const savedUserData = localStorage.getItem('hub_portal_user_data');
+    
+    if (savedAccount) {
+      setCurrentAccount(savedAccount);
+      setWalletConnected(true);
       if (savedUserData) {
         setCurrentUser(JSON.parse(savedUserData));
-        updateUserLastSeen(address);
-      } else {
-        checkUserRegistration(address);
       }
-    } else {
-      setCurrentAccount('');
-      setCurrentUser(null);
     }
-  }, [isConnected, address]);
+  }, []);
 
   useEffect(() => {
-    if (!isConnected || !db) return;
+    if (walletConnected && currentAccount && CONTRACT_ADDRESS) {
+      initializeContract();
+    }
+  }, [walletConnected, currentAccount]);
 
-    const messagesQuery = query(collection(db, 'messages'), orderBy('timestamp', 'asc'));
+  useEffect(() => {
+    if (contract && currentAccount) {
+      updateBalance();
+      updateRemaining();
+    }
+  }, [contract, currentAccount]);
+
+  useEffect(() => {
+    if (!walletConnected || !db) return;
+
+    // Subskrypcja wiadomości publicznych
+    const messagesQuery = query(collection(db, 'messages'), orderBy('timestamp', 'desc'));
     const unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
-      const messagesData = snapshot.docs
-        .map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-        .filter(msg => !pendingMessageIds.has(msg._tempId));
-      
+      const messagesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
       setMessages(messagesData);
     });
 
+    // Subskrypcja użytkowników
     const usersQuery = query(collection(db, 'users'), orderBy('lastSeen', 'desc'));
     const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
       const usersData = snapshot.docs.map(doc => ({
@@ -865,6 +677,7 @@ function App() {
       }));
       setAllUsers(usersData);
       
+      // Oblicz online users (ostatnio widziani < 5 minut)
       const online = usersData.filter(user => {
         if (!user.lastSeen) return false;
         const lastSeen = user.lastSeen.toDate();
@@ -874,6 +687,7 @@ function App() {
       setOnlineUsers(online);
     });
 
+    // Subskrypcja prywatnych chatów - DODANE
     if (currentAccount) {
       const privateChatsQuery = query(
         collection(db, 'private_chats'),
@@ -898,68 +712,9 @@ function App() {
       unsubscribeMessages();
       unsubscribeUsers();
     };
-  }, [isConnected, currentAccount, pendingMessageIds]);
+  }, [walletConnected, currentAccount]);
 
-  useEffect(() => {
-    if (!currentAccount || !db || !allUsers.length) return;
-
-    const newUnreadCounts = {};
-    const unsubscribeCallbacks = [];
-
-    privateChats.forEach(chat => {
-      const otherParticipant = chat.participants.find(p => p !== currentAccount.toLowerCase());
-      
-      const messagesQuery = query(
-        collection(db, 'private_chats', chat.id, 'messages'),
-        orderBy('timestamp', 'desc')
-      );
-      
-      const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-        if (!snapshot.empty) {
-          const messages = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          
-          const unreadMessages = messages.filter(msg => {
-            const isFromOther = msg.sender !== currentAccount.toLowerCase();
-            const isUnread = !msg.readBy || !msg.readBy.includes(currentAccount.toLowerCase());
-            return isFromOther && isUnread;
-          });
-          
-          newUnreadCounts[otherParticipant] = unreadMessages.length;
-          setUnreadCounts(prev => ({...prev, ...newUnreadCounts}));
-          
-          const latestMessage = messages[0];
-          const isFromOther = latestMessage.sender !== currentAccount.toLowerCase();
-          const isActiveChat = activeDMChat?.id === chat.id;
-          const isUnread = !latestMessage.readBy || !latestMessage.readBy.includes(currentAccount.toLowerCase());
-          
-          if (isFromOther && !isActiveChat && isUnread && unreadMessages.length > 0) {
-            const otherUser = allUsers.find(u => 
-              u.walletAddress.toLowerCase() === latestMessage.sender
-            );
-            
-            if (otherUser && !toastNotification) {
-              showToast(
-                otherUser.nickname,
-                latestMessage.content,
-                otherUser.avatar,
-                otherUser.walletAddress
-              );
-            }
-          }
-        }
-      });
-      
-      unsubscribeCallbacks.push(unsubscribe);
-    });
-
-    return () => {
-      unsubscribeCallbacks.forEach(unsubscribe => unsubscribe());
-    };
-  }, [privateChats, currentAccount, activeDMChat, allUsers]);
-
+  // Subskrypcja wiadomości w aktywnym czacie prywatnym - DODANE
   useEffect(() => {
     if (!activeDMChat || !db) return;
 
@@ -987,78 +742,113 @@ function App() {
     privateMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activePrivateMessages]);
 
-  useEffect(() => {
-    if (toastNotification) {
-      const timer = setTimeout(() => {
-        setToastNotification(null);
-      }, 5000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toastNotification]);
-
-  const checkUserRegistration = async (walletAddress) => {
+  // ========== FUNKCJE KONTRAKTU ==========
+  const initializeContract = async () => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', walletAddress.toLowerCase()));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setCurrentUser(userData);
-        localStorage.setItem('hub_portal_user_data', JSON.stringify(userData));
-        updateUserLastSeen(walletAddress);
+      // POPRAWIONE: Bezpieczne pobieranie providera
+      let provider;
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+      } else if (window.celo) {
+        provider = new ethers.providers.Web3Provider(window.celo);
       } else {
-        setShowNicknameModal(true);
+        throw new Error('No Ethereum provider found');
       }
+      
+      const signer = provider.getSigner();
+      const contractInstance = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      setContract(contractInstance);
+      console.log('✅ Contract initialized');
     } catch (error) {
-      console.error('Error checking user registration:', error);
-      setShowNicknameModal(true);
+      console.error('❌ Contract initialization failed:', error);
     }
   };
 
-  const markMessagesAsRead = async (chatId) => {
-    if (!chatId || !currentAccount || !db) {
-      return;
-    }
-    
+  const updateBalance = async () => {
+    if (!contract || !currentAccount) return;
     try {
-      const messagesQuery = query(
-        collection(db, 'private_chats', chatId, 'messages')
-      );
-      
-      const messagesSnap = await getDocs(messagesQuery);
-      
-      const updatePromises = [];
-      
-      messagesSnap.docs.forEach((doc) => {
-        const messageData = doc.data();
-        const isFromOther = messageData.sender !== currentAccount.toLowerCase();
-        
-        if (isFromOther) {
-          const currentReadBy = messageData.readBy || [];
-          
-          if (!currentReadBy.includes(currentAccount.toLowerCase())) {
-            updatePromises.push(
-              updateDoc(doc.ref, {
-                readBy: [...currentReadBy, currentAccount.toLowerCase()]
-              })
-            );
-          }
-        }
-      });
-      
-      if (updatePromises.length > 0) {
-        await Promise.all(updatePromises);
-      }
-      
+      const balance = await contract.balanceOf(currentAccount);
+      setBalance(ethers.utils.formatUnits(balance, 18));
     } catch (error) {
-      console.error('❌ Error marking messages as read:', error);
+      console.error('Error updating balance:', error);
+      setBalance('0');
     }
   };
 
-  const openChatFromToast = async (userId) => {
-    const user = allUsers.find(u => u.walletAddress === userId);
-    if (user) {
-      await startPrivateChat(user);
-      setToastNotification(null);
+  const updateRemaining = async () => {
+    if (!contract || !currentAccount) return;
+    try {
+      const remaining = await contract.remainingRewards(currentAccount);
+      setRemaining(remaining.toString());
+    } catch (error) {
+      console.error('Error updating remaining rewards:', error);
+      setRemaining('0');
+    }
+  };
+
+  // ========== FUNKCJE APLIKACJI ==========
+  const connectWallet = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      // POPRAWIONE: Bezpieczne wykrywanie providera
+      let ethereumProvider;
+      if (window.ethereum) {
+        ethereumProvider = window.ethereum;
+      } else if (window.celo) {
+        ethereumProvider = window.celo;
+      } else {
+        alert('Please install MetaMask or Celo Extension Wallet!');
+        return;
+      }
+
+      console.log('🔄 Requesting wallet connection...');
+      
+      let accounts;
+      if (ethereumProvider.request) {
+        accounts = await ethereumProvider.request({ 
+          method: 'eth_requestAccounts' 
+        });
+      } else if (ethereumProvider.enable) {
+        accounts = await ethereumProvider.enable();
+      } else {
+        alert('Wallet does not support connection requests');
+        return;
+      }
+      
+      if (accounts && accounts.length > 0) {
+        const account = accounts[0];
+        console.log('✅ Wallet connected:', account);
+        setCurrentAccount(account);
+        setWalletConnected(true);
+        localStorage.setItem('hub_portal_account', account);
+
+        // Sprawdź czy użytkownik istnieje w bazie
+        try {
+          const userDoc = await getDoc(doc(db, 'users', account.toLowerCase()));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setCurrentUser(userData);
+            localStorage.setItem('hub_portal_user_data', JSON.stringify(userData));
+            updateUserLastSeen(account);
+          } else {
+            setShowNicknameModal(true);
+          }
+        } catch (firebaseError) {
+          console.error('Firebase error:', firebaseError);
+          setShowNicknameModal(true);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Wallet connection error:', error);
+      if (error.code === 4001) {
+        alert('Connection rejected by user');
+      } else {
+        alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1111,71 +901,55 @@ function App() {
 
     setIsSending(true);
     
-    const tempId = `pending_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
     try {
-      writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: 'sendMessage',
-        args: [newMessage],
-      });
+      // Wyślij do kontraktu blockchain dla nagród
+      if (contract) {
+        try {
+          const tx = await contract.sendMessage(newMessage);
+          console.log('📝 Message sent to contract, TX:', tx.hash);
+          await tx.wait();
+          console.log('✅ Transaction confirmed');
+          
+          // Zaktualizuj nagrody
+          await updateBalance();
+          await updateRemaining();
+        } catch (contractError) {
+          console.error('Contract error:', contractError);
+        }
+      }
       
-      setPendingMessageIds(prev => new Set(prev).add(tempId));
-      
+      // Wyślij do Firebase dla chatu
       await addDoc(collection(db, 'messages'), {
         content: newMessage,
         nickname: currentUser.nickname,
         avatar: currentUser.avatar,
         avatarType: currentUser.avatarType,
         walletAddress: currentAccount.toLowerCase(),
-        timestamp: serverTimestamp(),
-        _tempId: tempId
+        timestamp: serverTimestamp()
       });
       
       setNewMessage('');
       updateUserLastSeen(currentAccount);
       
-      setTimeout(() => {
-        setPendingMessageIds(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(tempId);
-          return newSet;
-        });
-      }, 2000);
-      
     } catch (error) {
       console.error('Send message failed:', error);
-      
-      setPendingMessageIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(tempId);
-        return newSet;
-      });
-      
       alert('Failed to send message: ' + (error.message || 'Check console for details'));
     } finally {
       setIsSending(false);
     }
   };
 
-  const showToast = (fromUser, message, avatar, userId) => {
-    setToastNotification({
-      id: Date.now(),
-      from: fromUser,
-      message: message,
-      avatar: avatar,
-      userId: userId
-    });
-  };
-
+  // ========== POPRAWIONE FUNKCJE PRYWATNYCH WIADOMOŚCI ==========
   const startPrivateChat = async (user) => {
+    // SPRAWDŹ czy chat już istnieje
     const chatId = [currentAccount.toLowerCase(), user.walletAddress.toLowerCase()].sort().join('_');
     
     try {
       const chatDoc = await getDoc(doc(db, 'private_chats', chatId));
       
       if (chatDoc.exists()) {
+        // Chat istnieje → otwórz za darmo
+        console.log('✅ Chat exists, opening for free');
         setActiveDMChat({
           id: chatId,
           user: user,
@@ -1188,37 +962,32 @@ function App() {
             [user.walletAddress.toLowerCase()]: user.avatar
           }
         });
-
-        await markMessagesAsRead(chatId);
-        
-        setUnreadCounts(prev => ({
-          ...prev,
-          [user.walletAddress]: 0
-        }));
-        
       } else {
+        // Chat nie istnieje → pokaż modal z opłatą
+        console.log('🆕 New chat, showing payment modal');
         setSelectedUser(user);
         setShowDMModal(true);
       }
     } catch (error) {
       console.error('Error checking chat status:', error);
+      // W przypadku błędu, domyślnie pokaż modal
       setSelectedUser(user);
       setShowDMModal(true);
     }
   };
 
   const confirmPrivateChat = async () => {
-    if (!selectedUser || !privateMessage.trim()) return;
+    if (!selectedUser || !privateMessage.trim() || !contract) return;
     
     setIsStartingDM(true);
     try {
-      writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: 'sendMessage',
-        args: [`[PRIVATE] ${privateMessage}`],
-      });
+      // 1. Wywołaj kontrakt - opłata 1 HC za rozpoczęcie chatu
+      console.log('🔐 Starting private chat with:', selectedUser.nickname);
       
+      const tx = await contract.sendMessage(`[PRIVATE] ${privateMessage}`);
+      await tx.wait();
+      
+      // 2. Utwórz prywatny chat w Firebase
       const chatId = [currentAccount.toLowerCase(), selectedUser.walletAddress.toLowerCase()].sort().join('_');
       
       await setDoc(doc(db, 'private_chats', chatId), {
@@ -1234,9 +1003,10 @@ function App() {
         createdAt: serverTimestamp(),
         lastMessage: serverTimestamp(),
         lastMessageContent: privateMessage,
-        paidBy: currentAccount.toLowerCase()
+        paidBy: currentAccount.toLowerCase() // ZAPISUJEMY kto opłacił inicjację
       });
 
+      // 3. Wyślij pierwszą wiadomość
       await addDoc(collection(db, 'private_chats', chatId, 'messages'), {
         content: privateMessage,
         sender: currentAccount.toLowerCase(),
@@ -1246,6 +1016,7 @@ function App() {
         isFirstMessage: true
       });
 
+      // 4. OTWÓRZ OKNO CZATU PRYWATNEGO
       setActiveDMChat({
         id: chatId,
         user: selectedUser,
@@ -1259,9 +1030,16 @@ function App() {
         }
       });
 
+      // 5. Zamknij modal i wyczyść stan
       setShowDMModal(false);
       setPrivateMessage('');
       setSelectedUser(null);
+      
+      // 6. Zaktualizuj nagrody
+      await updateBalance();
+      await updateRemaining();
+      
+      console.log('✅ Private chat started successfully');
       
     } catch (error) {
       console.error('Failed to start private chat:', error);
@@ -1271,6 +1049,7 @@ function App() {
     }
   };
 
+  // WYSYŁANIE WIADOMOŚCI PRYWATNEJ - POPRAWIONE
   const sendPrivateMessage = async () => {
     if (!activeDMChat || !privateMessageInput.trim() || !db) return;
     if (isSendingPrivate) return;
@@ -1278,6 +1057,27 @@ function App() {
     setIsSendingPrivate(true);
     
     try {
+      // SPRAWDŹ czy to pierwsza wiadomość w tym kierunku
+      const chatDoc = await getDoc(doc(db, 'private_chats', activeDMChat.id));
+      const chatData = chatDoc.data();
+      
+      // Jeśli użytkownik nie opłacił jeszcze dostępu do tego chatu
+      if (!chatData.paidBy || !chatData.paidBy.includes(currentAccount.toLowerCase())) {
+        // Sprawdź czy to pierwsza wiadomość od tego użytkownika
+        const myMessages = activePrivateMessages.filter(msg => 
+          msg.sender === currentAccount.toLowerCase()
+        );
+        
+        if (myMessages.length === 0) {
+          // To pierwsza wiadomość - wymagaj opłaty
+          console.log('💰 First message in this direction requires payment');
+          setShowDMModal(true);
+          setIsSendingPrivate(false);
+          return;
+        }
+      }
+      
+      // WYŚLIJ WIADOMOŚĆ ZA DARMO (już opłacone)
       await addDoc(collection(db, 'private_chats', activeDMChat.id, 'messages'), {
         content: privateMessageInput,
         sender: currentAccount.toLowerCase(),
@@ -1286,6 +1086,7 @@ function App() {
         timestamp: serverTimestamp()
       });
 
+      // Zaktualizuj ostatnią wiadomość w chacie
       await updateDoc(doc(db, 'private_chats', activeDMChat.id), {
         lastMessage: serverTimestamp(),
         lastMessageContent: privateMessageInput
@@ -1313,6 +1114,22 @@ function App() {
     }
   };
 
+  const disconnectWallet = () => {
+    setWalletConnected(false);
+    setCurrentAccount('');
+    setCurrentUser(null);
+    setMessages([]);
+    setOnlineUsers([]);
+    setAllUsers([]);
+    setContract(null);
+    setBalance('0');
+    setRemaining('0');
+    setActiveDMChat(null);
+    setActivePrivateMessages([]);
+    localStorage.removeItem('hub_portal_account');
+    localStorage.removeItem('hub_portal_user_data');
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -1320,31 +1137,35 @@ function App() {
     }
   };
 
-  const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
-
-  if (!isConnected) {
+  // ========== RENDER ==========
+  if (!walletConnected) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4 relative">
-        <InteractiveNetworkBackground />
-        
-        <div className="text-center bg-gray-800/70 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-12 max-w-md w-full relative z-10">
-          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center">
-            <img 
-              src="/hublogo.svg" 
-              alt="HUB Portal" 
-              className="w-12 h-12"
-            />
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
+        <div className="text-center bg-gray-800/50 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-12 max-w-md w-full">
+          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center text-3xl">
+            💎
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-4">
             HUB Portal
           </h1>
           <p className="text-gray-400 text-lg mb-8">Decentralized Social Chat on Celo</p>
           
-          <div className="flex justify-center">
-            <ConnectButton />
-          </div>
+          <button 
+            onClick={connectWallet}
+            disabled={isLoading}
+            className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-2xl hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50 transition-all transform hover:scale-105 mb-8"
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Connecting...
+              </div>
+            ) : (
+              'Connect Wallet 🦊'
+            )}
+          </button>
           
-          <div className="flex justify-center gap-4 flex-wrap mt-8">
+          <div className="flex justify-center gap-4 flex-wrap">
             <span className="px-4 py-2 bg-gray-700/50 border border-gray-600/50 rounded-xl text-gray-300 text-sm">
               💎 Earn HC Tokens
             </span>
@@ -1356,98 +1177,24 @@ function App() {
             </span>
           </div>
         </div>
-
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-center z-10">
-          <div className="flex items-center gap-4 bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-2xl px-6 py-3">
-            <img 
-              src="/hublogo.svg" 
-              alt="HUB Ecosystem" 
-              className="w-6 h-6"
-            />
-            <div className="text-left">
-              <p className="text-gray-400 text-xs font-light">
-                © 2025 HUB Ecosystem. All rights reserved.
-              </p>
-              <p className="text-gray-500 text-xs">
-                Project by <span className="text-cyan-400 font-medium">@Mysticpol</span>
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white overflow-hidden">
+      {/* Background Effects */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 animate-pulse"></div>
       </div>
 
-      {toastNotification && (
-        <div 
-          className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-500 cursor-pointer"
-          onClick={() => openChatFromToast(toastNotification.userId)}
-        >
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-cyan-500/30 rounded-2xl p-4 max-w-sm shadow-2xl backdrop-blur-xl transform transition-all duration-300 hover:scale-105 hover:border-cyan-400/50">
-            
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-xl shadow-lg animate-pulse">
-                    {toastNotification.avatar}
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-gray-900 animate-bounce"></div>
-                </div>
-                <div>
-                  <div className="text-white font-bold text-sm">Nowa wiadomość 💬</div>
-                  <div className="text-cyan-400 font-semibold">{toastNotification.from}</div>
-                  <div className="text-gray-400 text-xs">Kliknij aby otworzyć czat</div>
-                </div>
-              </div>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setToastNotification(null);
-                }}
-                className="text-gray-400 hover:text-white hover:bg-gray-700/50 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="bg-gray-700/50 rounded-xl p-3 border border-gray-600/50">
-              <p className="text-gray-200 text-sm leading-relaxed">
-                {toastNotification.message}
-              </p>
-            </div>
-            
-            <div className="mt-3 h-1 bg-gray-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full animate-progress"
-                style={{animation: 'progress 5s linear'}}
-              ></div>
-            </div>
-            
-            <div className="text-gray-400 text-xs mt-2 text-right">
-              Teraz
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex h-screen relative z-10">
+        {/* Sidebar */}
         <div className="w-80 bg-gray-800/50 backdrop-blur-xl border-r border-gray-700/50 flex flex-col h-full overflow-hidden">
           <div className="p-6 border-b border-gray-700/50 flex-shrink-0">
             <div className="flex items-center justify-center gap-3 mb-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
-                <img 
-                  src="/hublogo.svg" 
-                  alt="HUB Portal" 
-                  className="w-5 h-5"
-                />
+                💎
               </div>
               <h3 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
                 HUB Chat
@@ -1456,14 +1203,10 @@ function App() {
             <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               {onlineUsers.length} online
-              {totalUnreadCount > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full ml-2 animate-pulse">
-                  {totalUnreadCount} new
-                </span>
-              )}
             </div>
           </div>
 
+          {/* User Info */}
           <div className="p-4 border-b border-gray-700/50 flex-shrink-0">
             {currentUser && (
               <div className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-xl border border-gray-600/50">
@@ -1474,16 +1217,12 @@ function App() {
                   <div className="text-white font-semibold truncate">{currentUser.nickname}</div>
                   <div className="text-cyan-400 text-sm">HC: {balance}</div>
                   <div className="text-gray-400 text-xs">Rewards: {remaining}/10 left</div>
-                  {totalUnreadCount > 0 && (
-                    <div className="text-green-400 text-xs animate-pulse">
-                      📩 {totalUnreadCount} unread messages
-                    </div>
-                  )}
                 </div>
               </div>
             )}
           </div>
 
+          {/* Tab Navigation */}
           <div className="p-4 border-b border-gray-700/50 flex-shrink-0">
             <div className="flex bg-gray-700/50 rounded-xl p-1 border border-gray-600/50">
               <button 
@@ -1505,15 +1244,11 @@ function App() {
                 onClick={() => setActiveTab('users')}
               >
                 👥 Users ({allUsers.length})
-                {totalUnreadCount > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-1 animate-bounce">
-                    {totalUnreadCount}
-                  </span>
-                )}
               </button>
             </div>
           </div>
 
+          {/* Users List */}
           <div className="flex-1 overflow-hidden flex flex-col p-4">
             <h4 className="text-gray-400 text-sm font-semibold mb-3 flex-shrink-0">
               {activeTab === 'public' ? `Online Users (${onlineUsers.length})` : `All Users (${allUsers.length})`}
@@ -1521,86 +1256,50 @@ function App() {
             <div className="flex-1 overflow-y-auto space-y-2">
               {(activeTab === 'public' ? onlineUsers : allUsers)
                 .filter(user => user.walletAddress !== currentAccount.toLowerCase())
-                .map(user => {
-                  const unreadCount = unreadCounts[user.walletAddress] || 0;
-                  const isOnline = onlineUsers.some(onlineUser => 
-                    onlineUser.walletAddress === user.walletAddress
-                  );
-                  
-                  return (
-                    <div 
-                      key={user.walletAddress}
-                      className={`relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border group ${
-                        activeDMChat?.user?.walletAddress === user.walletAddress 
-                          ? 'bg-cyan-500/20 border-cyan-500/50' 
-                          : 'border-gray-600/50 hover:bg-gray-700/50 hover:border-cyan-500/30'
-                      } flex-shrink-0`}
-                      onClick={() => startPrivateChat(user)}
-                    >
-                      <div className="relative">
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-base shadow-lg ${
-                          unreadCount > 0 ? 'animate-pulse' : ''
-                        }`}>
-                          {user.avatar}
-                        </div>
-                        {isOnline && (
-                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-800 animate-pulse"></div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="text-white font-medium truncate flex items-center gap-2">
-                          {user.nickname}
-                        </div>
-                        <div className="text-gray-400 text-xs truncate">
-                          {user.walletAddress.slice(0, 8)}...{user.walletAddress.slice(-6)}
-                        </div>
-                      </div>
-                      
-                      {unreadCount > 0 && (
-                        <div className="flex items-center">
-                          <div className="relative">
-                            <div className="bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-bounce">
-                              {unreadCount}
-                            </div>
-                            <div className="absolute inset-0 bg-red-400 rounded-full animate-ping"></div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {!unreadCount && (
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
-                        }`}></div>
-                      )}
+                .map(user => (
+                  <div 
+                    key={user.walletAddress}
+                    className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border border-gray-600/50 hover:bg-gray-700/50 hover:border-cyan-500/30 flex-shrink-0"
+                    onClick={() => startPrivateChat(user)}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-base">
+                      {user.avatar}
                     </div>
-                  );
-                })}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-medium truncate">{user.nickname}</div>
+                      <div className="text-gray-400 text-xs truncate">
+                        {user.walletAddress.slice(0, 8)}...{user.walletAddress.slice(-6)}
+                      </div>
+                    </div>
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse flex-shrink-0"></div>
+                  </div>
+                ))}
             </div>
           </div>
 
+          {/* Stats & Disconnect */}
           <div className="p-4 border-t border-gray-700/50 flex-shrink-0 space-y-3">
             <div className="flex justify-between items-center p-3 bg-gray-700/30 rounded-xl border border-gray-600/50">
               <span className="text-gray-400 text-sm">Daily Rewards:</span>
               <strong className="text-cyan-400">{remaining}/10</strong>
             </div>
             
-            <div className="flex justify-center">
-              <ConnectButton showBalance={false} />
-            </div>
+            <button 
+              onClick={disconnectWallet}
+              className="w-full py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/50 transition-all"
+            >
+              Disconnect
+            </button>
           </div>
         </div>
 
+        {/* Main Content */}
         <div className="flex-1 flex flex-col bg-gray-900/50 min-w-0">
           <header className="bg-gray-800/50 backdrop-blur-xl border-b border-gray-700/50 p-6 flex-shrink-0">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
-                  <img 
-                    src="/hublogo.svg" 
-                    alt="HUB Portal" 
-                    className="w-5 h-5"
-                  />
+                  💎
                 </div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
                   HUB Portal
@@ -1613,17 +1312,21 @@ function App() {
                 <span className="px-4 py-2 bg-gray-700/50 border border-gray-600/50 rounded-xl text-cyan-400">
                   🎯 Left: {remaining}/10
                 </span>
-                {totalUnreadCount > 0 && (
-                  <span className="px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-xl text-red-400 animate-pulse">
-                    📩 {totalUnreadCount} unread
+                {contract ? (
+                  <span className="px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-xl text-green-400">
+                    ✅ Contract
+                  </span>
+                ) : (
+                  <span className="px-4 py-2 bg-yellow-500/20 border border-yellow-500/50 rounded-xl text-yellow-400">
+                    ⚠️ No Contract
                   </span>
                 )}
-                <ConnectButton showBalance={false} />
               </div>
             </div>
           </header>
 
           <section className="flex-1 flex flex-col p-6 min-h-0">
+            {/* Messages Container */}
             <div className="flex-1 overflow-y-auto space-y-4 mb-4">
               {messages.map(msg => (
                 <div key={msg.id} className="bg-gray-800/50 backdrop-blur-lg border border-gray-700/50 rounded-2xl p-4 hover:border-cyan-500/50 transition-all">
@@ -1640,6 +1343,7 @@ function App() {
                   </div>
                   <div className="text-white ml-11">{msg.content}</div>
                   
+                  {/* Reactions */}
                   <div className="ml-11 mt-2 flex gap-2">
                     <button className="text-gray-400 hover:text-cyan-400 text-sm transition-all transform hover:scale-110">
                       ❤️
@@ -1659,6 +1363,7 @@ function App() {
               <div ref={messagesEndRef} />
             </div>
 
+            {/* Message Input */}
             <div className="flex gap-3 bg-gray-800/50 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 flex-shrink-0">
               <input 
                 type="text" 
@@ -1687,8 +1392,10 @@ function App() {
           </section>
         </div>
 
+        {/* PRIVATE CHAT PANEL - DODANE */}
         {activeDMChat && (
           <div className="w-96 bg-gray-800/50 backdrop-blur-xl border-l border-gray-700/50 flex flex-col h-full">
+            {/* DM Header */}
             <div className="p-4 border-b border-gray-700/50 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-lg">
@@ -1709,6 +1416,7 @@ function App() {
               </button>
             </div>
 
+            {/* DM Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {activePrivateMessages.length === 0 ? (
                 <div className="text-center text-gray-400 mt-8">
@@ -1736,6 +1444,7 @@ function App() {
               <div ref={privateMessagesEndRef} />
             </div>
 
+            {/* DM Input */}
             <div className="p-4 border-t border-gray-700/50">
               <div className="flex gap-3">
                 <input
@@ -1763,9 +1472,11 @@ function App() {
         )}
       </div>
 
+      {/* Nickname Registration Modal */}
       {showNicknameModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            {/* Warning Banner */}
             {!currentUser && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 mb-6 flex items-start gap-3 animate-pulse">
                 <div className="text-yellow-400 text-xl">⚠️</div>
@@ -1829,6 +1540,7 @@ function App() {
         </div>
       )}
 
+      {/* Private Chat Modal */}
       {showDMModal && selectedUser && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-8 max-w-md w-full">
@@ -1894,16 +1606,6 @@ function App() {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        @keyframes progress {
-          from { width: 100%; }
-          to { width: 0%; }
-        }
-        .animate-progress {
-          animation: progress 5s linear;
-        }
-      `}</style>
     </div>
   );
 }
